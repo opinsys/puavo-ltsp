@@ -28,7 +28,8 @@ if ! chroot ${rootmnt} /usr/bin/test -w "/" ; then
     super_laptop=true
 
     if super_laptop; then
-        # For super laptops do not create tmpfs but a presistent write target
+        # For super laptops do not create tmpfs but a presistent write target.
+        # Put image name to target to avoid problems after image updates
         write_target="/changes-${image_name}"
         mkdir -p $write_target
     else
