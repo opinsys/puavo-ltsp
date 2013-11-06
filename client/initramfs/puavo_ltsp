@@ -20,21 +20,38 @@ test -n "$LTSP_BOOT" || exit
 [ -d "${rootmnt}/proc" ] || panic "rootmnt not mounted in init-bottom"
 # mount writeable filesystems if / is not already mounted writeable.
 if ! chroot ${rootmnt} /usr/bin/test -w "/" ; then
-    mkdir -p /rofs /cow
-    mount -t tmpfs -o mode=0755 tmpfs /cow
+
+    # TODO: How we can get this here?
+    image_name="todo"
+
+    # Variable set from puavo-web
+    super_laptop=true
+
+    if super_laptop; then
+        # For super laptops do not create tmpfs but a presistent write target
+        write_target="/changes-${image_name}"
+        mkdir -p $write_target
+    else
+        write_target="/cow"
+        mkdir -p $write_target
+        mount -t tmpfs -o mode=0755 tmpfs /cow
+    fi
+
+    mkdir -p /rofs
+
     mount -o move ${rootmnt} /rofs
     if modprobe overlayfs; then
         UNION_TYPE=overlayfs
-        UNION_OPTS="upperdir=/cow,lowerdir=/rofs"
+        UNION_OPTS="upperdir=${write_target},lowerdir=/rofs"
     elif modprobe aufs; then
         UNION_TYPE=aufs
-        UNION_OPTS="dirs=/cow=rw:/rofs=ro"
+        UNION_OPTS="dirs=${write_target}=rw:/rofs=ro"
     else
         . /scripts/functions
         panic "Could not load neither overlayfs nor aufs."
     fi
     mount -t ${UNION_TYPE} -o ${UNION_OPTS} ${UNION_TYPE} ${rootmnt}
-    for dir in /rofs /cow ; do
+    for dir in /rofs ${write_target} ; do
         mkdir -p ${rootmnt}${dir}
     	mount -o move ${dir} ${rootmnt}${dir}
     done
