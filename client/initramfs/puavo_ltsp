@@ -11,6 +11,10 @@ for x in $(cat /proc/cmdline); do
             PUAVO_LTSP_BOOT=true
             break
             ;;
+        superlaptop)
+            SUPER_LAPTOP=true
+            break
+            ;;
     esac
 done
 
@@ -21,16 +25,12 @@ test -n "$LTSP_BOOT" || exit
 # mount writeable filesystems if / is not already mounted writeable.
 if ! chroot ${rootmnt} /usr/bin/test -w "/" ; then
 
-    # TODO: How we can get this here?
-    image_name="todo"
+    image_name=$(cat "${rootmnt}/etc/ltsp/this_ltspimage_name")
 
-    # Variable set from puavo-web
-    super_laptop=true
-
-    if super_laptop; then
+    if $SUPER_LAPTOP; then
         # For super laptops do not create tmpfs but a presistent write target.
         # Put image name to target to avoid problems after image updates
-        write_target="/changes-${image_name}"
+        write_target="/cow-${image_name}"
         mkdir -p $write_target
     else
         write_target="/cow"
