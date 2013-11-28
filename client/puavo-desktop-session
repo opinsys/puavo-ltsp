@@ -22,13 +22,12 @@ case "${PUAVO_HOSTTYPE}" in
     XAUTH_PROTOCOL=$(xauth -f $XAUTHORITY list | head -1 | awk '{print $2}')
     XAUTH_KEY=$(xauth -f $XAUTHORITY list | head -1| awk '{print $3}')
 
-    ssh -Y -t -K $PREFERRED_SERVER -M -S $SOCKET "xauth remove ${REMOTE_DISPLAY}; xauth add ${REMOTE_DISPLAY} ${XAUTH_PROTOCOL} ${XAUTH_KEY}; $CLIENT_ENV PUAVO_SESSION_ID=$PUAVO_SESSION_ID DISPLAY=$REMOTE_DISPLAY PULSE_SERVER=tcp:$IPADDR:4713 /etc/X11/Xsession $REMOTE_SESSION < /dev/null > /dev/null $LOCALDEV"
-#    daemon --pidfile=/run/puavo/${USER}/ts-session.pid -i -- ssh -Y -t -K $PREFERRED_SERVER -M -S $SOCKET "xauth remove ${REMOTE_DISPLAY}; xauth add ${REMOTE_DISPLAY} ${PROTOCOL} ${KEY}; $CLIENT_ENV PUAVO_SESSION_ID=$PUAVO_SESSION_ID DISPLAY=$REMOTE_DISPLAY PULSE_SERVER=tcp:$IPADDR:4713 /etc/X11/Xsession $REMOTE_SESSION < /dev/null > /dev/null $MY_LOCALDEV"
+    daemon --pidfile=/run/puavo/${USER}/ts-session.pid -i -- ssh -Y -t -K $PREFERRED_SERVER -M -S $SOCKET "xauth remove ${REMOTE_DISPLAY}; xauth add ${REMOTE_DISPLAY} ${XAUTH_PROTOCOL} ${XAUTH_KEY}; $CLIENT_ENV PUAVO_SESSION_ID=$PUAVO_SESSION_ID DISPLAY=$REMOTE_DISPLAY PULSE_SERVER=tcp:$IPADDR:4713 /etc/X11/Xsession $REMOTE_SESSION < /dev/null > /dev/null $LOCALDEV"
 
-#    sleep 10 # wait for the tunnel to open
-#    while [ ! -S "$SOCKET" ]; do
-#      sleep 1
-#    done
+    sleep 10 # wait for the tunnel to open
+    while [ -S "$SOCKET" ]; do
+      sleep 1
+    done
     ;;
   esac
 fi
