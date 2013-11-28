@@ -42,7 +42,15 @@ end
 @puavo_hostname    = read_file('/etc/puavo/hostname')
 @puavo_domain      = read_file('/etc/puavo/domain')
 @puavo_topdomain   = read_file('/etc/puavo/topdomain')
-@device            = JSON.parse(read_file('/etc/puavo/device.json'))
+@device = Hash.new
+
+if @puavo_device_type.eql?("thinclient") or
+   @puavo_device_type.eql?("fatclient")
+  begin
+    @device = JSON.parse(read_file('/etc/puavo/device.json'))
+  rescue Exception => e
+  end
+end
 
 def write_config(filename, version=nil, secure=false)
   begin
