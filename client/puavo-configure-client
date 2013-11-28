@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 
 require 'erb'
+require 'json'
 
 def delete_file(file)
   if File.exists?(file)
@@ -16,15 +17,15 @@ def read_file(file)
   return ""
 end
 
-puavo_device_type = ARGV[0]
+@puavo_device_type = ARGV[0]
 
-if (!puavo_device_type)
+if (!@puavo_device_type)
   if File.exists?("/etc/puavo/hosttype")
-    puavo_device_type = File.read('/etc/puavo/hosttype').chomp
+    @puavo_device_type = File.read('/etc/puavo/hosttype').chomp
   end
 end
 
-if puavo_device_type == 'unregistered'
+if @puavo_device_type == 'unregistered'
   `hostname unregistered`
   `echo unregistered > /proc/sys/kernel/hostname`
   `echo unregistered > /etc/hostname`
@@ -41,6 +42,7 @@ end
 @puavo_hostname    = read_file('/etc/puavo/hostname')
 @puavo_domain      = read_file('/etc/puavo/domain')
 @puavo_topdomain   = read_file('/etc/puavo/topdomain')
+@device            = JSON.parse(read_file('/etc/puavo/device.json'))
 
 def write_config(filename, version=nil, secure=false)
   begin
@@ -76,7 +78,7 @@ end
 
 write_config("/etc/hosts")
 
-case puavo_device_type
+case @puavo_device_type
   when "thinclient"
     write_config("/etc/nsswitch.conf", "extrausers")
     write_config("/etc/pam.d/lightdm", "thinclient")
@@ -86,6 +88,7 @@ case puavo_device_type
     write_config("/etc/default/nfs-common")
     write_config("/etc/init/gssd.conf", "userprincipal")
     write_config("/etc/cups/client.conf")
+    write_config("/etc/lightdm/lightdm.conf")
 
     delete_file('/usr/share/dbus-1/system-services/fi.epitest.hostap.WPASupplicant.service')
     delete_file('/usr/share/dbus-1/system-services/fi.w1.wpa_supplicant1.service')
@@ -99,9 +102,10 @@ case puavo_device_type
     write_config("/etc/init/gssd.conf", "userprincipal")
     write_config("/etc/cups/cupsd.conf")
     write_config("/etc/security/group.conf")
+    write_config("/etc/lightdm/lightdm.conf")
 
     # FIXME: Hack to get gnome fallback session
-    `cp /usr/share/xsessions/gnome-fallback.desktop /usr/share/ltsp-lightdm/xsessions/ltsp-session.desktop`
+    `cp /usr/share/xsessions/gnome-fallback.desktop /usr/share/puavo-ltsp-client/xsessions/puavo.desktop`
 
     delete_file('/usr/share/dbus-1/system-services/fi.epitest.hostap.WPASupplicant.service')
     delete_file('/usr/share/dbus-1/system-services/fi.w1.wpa_supplicant1.service')
@@ -146,9 +150,10 @@ case puavo_device_type
     write_config("/etc/racoon/racoon.conf")
     write_config("/etc/security/group.conf")
     write_config("/etc/samba/smb.conf", "laptop")
+    write_config("/etc/lightdm/lightdm.conf")
 
     # FIXME: Hack to get gnome fallback session
-    `cp /usr/share/xsessions/gnome-fallback.desktop /usr/share/ltsp-lightdm/xsessions/ltsp-session.desktop`
+    `cp /usr/share/xsessions/gnome-fallback.desktop /usr/share/puavo-ltsp-client/xsessions/puavo.desktop`
 
     @ldap_binddn       = read_file('/etc/puavo/ldap/dn')
     @ldap_bindpw       = read_file('/etc/puavo/ldap/password')
