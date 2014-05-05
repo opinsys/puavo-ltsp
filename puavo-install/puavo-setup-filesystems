@@ -43,6 +43,13 @@ module DiskHandler
       { 'size' => '4G',       'name' => 'state',  'type' => 'ext4' },
       { 'size' => '100%FREE', 'name' => 'home',   'type' => 'ext4' },
     ],
+    'laptop_mini' => [
+      { 'size' => '1G',       'name' => 'swap',   'type' => 'swap' },
+      { 'size' => '2G',       'name' => 'tmp',    'type' => 'ext4' },
+      { 'size' => '20G',      'name' => 'images', 'type' => 'ext4' },
+      { 'size' => '1G',       'name' => 'state',  'type' => 'ext4' },
+      { 'size' => '100%FREE', 'name' => 'home',   'type' => 'ext4' },
+    ],
     'ltspserver' => [
       { 'size' => '16G',      'name' => 'swap',   'type' => 'swap' },
       { 'size' => '6G',       'name' => 'tmp',    'type' => 'ext4' },
@@ -122,7 +129,18 @@ module DiskHandler
     run('pvcreate', fs_conf['partition'])
     run('vgcreate', '-s', '64M', 'puavo', fs_conf['partition'])
 
-    Filesystems[ fs_conf['hosttype'] ].each do |fs|
+    hosttype = fs_conf['hosttype']
+
+    if hosttype.eql?("laptop")
+      hdsize = File.read("/sys/block/#{ fs_conf['device'] }/size").chomp.to_i
+
+      # If harddrive size is less than 55G use the laptop_mini configuration
+      if hdsize < 55*1024*1024*2
+        hosttype = "laptop_mini"
+      end
+    end
+
+    Filesystems[ hosttype ].each do |fs|
       mkfs(fs['size'], fs['name'], fs['type'])
     end
   end
