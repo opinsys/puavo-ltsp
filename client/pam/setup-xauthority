@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -eu
+
+echo "XAUTHORITY=/tmp/xauthority-${PAM_USER}"

@@ -224,7 +224,8 @@ install : installdirs
 		pam/make-session-dir \
 		pam/open-session \
 		pam/populate-extrausers \
-		pam/setup-guest-session
+		pam/setup-guest-session \
+		pam/setup-xauthority
 
 	ln -fs /usr/sbin/sshd $(DESTDIR)$(sbindir)/ltspsshd
 	ln -fs /usr/sbin/sshd $(DESTDIR)$(sbindir)/ltspguestsshd

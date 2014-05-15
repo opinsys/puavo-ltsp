@@ -20,6 +20,7 @@ account required	pam_permit.so
 session	optional	pam_krb5.so minimum_uid=1000
 session	required        pam_exec.so /usr/lib/puavo-ltsp-client/pam/make-session-dir
 session required        pam_envfeed.so prog=/usr/lib/puavo-ltsp-client/pam/chown-session-dir
+session required        pam_envfeed.so prog=/usr/lib/puavo-ltsp-client/pam/setup-xauthority
 session optional	pam_umask.so
 session required        pam_exec.so /usr/sbin/puavo-ltsp-init-nfs
 
