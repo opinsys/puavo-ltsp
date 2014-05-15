@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 
 require 'erb'
+require 'etc'
 require 'json'
 
 def delete_file(file)
@@ -196,7 +197,7 @@ case @puavo_device_type
     try_writing_puavomounts()
   when "ltspserver"
     write_config("/etc/hosts", "ltspserver")
-    write_config("/etc/nsswitch.conf", "sss")
+    write_config("/etc/nsswitch.conf", "ldap")
     write_config("/etc/pam.d/ltspguestsshd")
     write_config("/etc/pam.d/ltspsshd")
     write_config("/etc/ldap/ldap.conf")
@@ -208,6 +209,10 @@ case @puavo_device_type
     write_config("/etc/ntp.conf")
     write_config("/etc/X11/Xsession")
     File.chmod(0755, "/etc/X11/Xsession")
+    write_config("/etc/X11/nslcd.conf")
+    File.chmod(0640, "/etc/X11/nslcd.conf")
+    nslcd_pwent = Etc.getpwnam("nslcd")
+    File.chown(0, nslcd_pwent.uid, "/etc/nslcd.conf")
 
     @ldap_binddn       = read_file('/etc/puavo/ldap/dn')
     @ldap_bindpw       = read_file('/etc/puavo/ldap/password')
