@@ -49,6 +49,7 @@ installdirs :
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/security
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/ssh
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/sssd
+	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/X11
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/lib/udev
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/xsessions
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp/init-puavo.d
@@ -119,6 +120,9 @@ install : installdirs
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/sssd \
 		templates/etc/sssd/sssd.conf \
 		templates/etc/sssd/sssd.conf-laptop
+
+	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/X11 \
+		templates/etc/X11/Xsession
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/lib/udev \
 		templates/lib/udev/ltspfs_entry

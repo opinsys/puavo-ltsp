@@ -206,6 +206,8 @@ case @puavo_device_type
     write_config("/etc/ssh/sshd_config")
     write_config("/etc/cups/client.conf")
     write_config("/etc/ntp.conf")
+    write_config("/etc/X11/Xsession")
+    File.chmod(0755, "/etc/X11/Xsession")
 
     @ldap_binddn       = read_file('/etc/puavo/ldap/dn')
     @ldap_bindpw       = read_file('/etc/puavo/ldap/password')
