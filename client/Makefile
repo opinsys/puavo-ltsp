@@ -197,6 +197,7 @@ install : installdirs
 		puavo-desktop-guest-session \
 		puavo-thin-guest-account \
 		puavo-ltspserver-create-guest \
+		puavo-x2go-set-xrandr-mode \
 		udev/udev-hotplug-monitor \
 		udev/udev-jetpipe
 
