@@ -12,3 +12,5 @@ case  "$PUAVO_HOSTTYPE" in
 esac
 
 #exec /usr/share/ltsp/xinitrc
+
+exit 0
