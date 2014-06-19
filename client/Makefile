@@ -163,8 +163,7 @@ install : installdirs
 		screen.d/wirelessaccesspoint
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/ltsp/ltsp_config.d \
-		ltsp_config.d/00-puavoltsp-by-hosttype \
-		ltsp_config.d/02-find-puavo-ltsp-server
+		ltsp_config.d/00-puavoltsp-by-hosttype
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(sysconfdir)/default \
 		etc/default/ltspssh \
