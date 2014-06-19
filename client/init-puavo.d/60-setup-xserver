@@ -5,6 +5,8 @@
 rm -f /etc/modprobe.d/fglrx.conf \
       /etc/modprobe.d/nvidia-304_hybrid.conf
 
+XSERVER=$(jq -r .graphics_driver /etc/puavo/device.json)
+
 case "$XSERVER" in
   fglrx)
     update-alternatives --set i386-linux-gnu_gl_conf /usr/lib/fglrx/ld.so.conf
