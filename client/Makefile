@@ -217,7 +217,7 @@ install : installdirs
 		puavo-webkiosk-restart-lightdm \
 		udev/udev-hotplug-monitor \
 		udev/udev-jetpipe \
-		xinitrc
+		setup-lightdm-display
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(libdir)/puavo-ltsp-client/pam \
 		pam/chown-session-dir \
