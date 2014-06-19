@@ -1,0 +1,33 @@
+.TH "jetpipe" "8" "20061206" "Oliver Grawert" ""
+.SH "NAME"
+jetpipe - bind a printer device to a tcp port
+.SH "SYNOPSIS"
+.PP 
+\fBjetpipe\fR <printerdevice> <portnumber>
+.SH "DESCRIPTION"
+.PP 
+\fBjetpipe\fR will bind a printer device to a given portnumber so the printer can be 
+accessed through the JetDirect protocol from a remote client.
+.SH "EXAMPLE"
+.PP 
+/usr/sbin/jetpipe /dev/usblp0 9100
+.PP 
+The above commandline will bind the USB printer on /dev/usblp0 to port 9100 where it can be 
+acessed through the JetDirect protocol from a cups client
+.SH "SEE ALSO"
+.PP 
+\fBcups\-deviced\fP\fB(8)\fP,  
+\fBcups\-driverd\fP\fB(8)\fP, 
+\fBcups\-lpd\fP\fB(8)\fP, 
+\fBcups\-polld\fP\fB(8)\fP, 
+cupsd.conf(5)
+cupsd(8)
+.SH "AVAILABILITY"
+.PP 
+\fBjetpipe\fR is part of \fBltsp\fP package 
+and the latest versions are available in source form from 
+\fIhttps://launchpad.net/products/ltsp (link to URL https://launchpad.net/products/ltsp) \fR. 
+.SH "AUTHOR"
+.PP 
+copyright 2006 Oliver Grawert <ogra@ubuntu.com>, distributed under
+the terms of the GNU General Public License version 2 or any later version.
