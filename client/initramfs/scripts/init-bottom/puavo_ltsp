@@ -1,5 +1,21 @@
 #!/bin/sh
 
+MINKVER="2.6.17"
+PREREQ=""
+
+# Output pre-requisites
+prereqs()
+{
+    echo "$PREREQ"
+}
+
+case "$1" in
+    prereqs)
+        prereqs
+    exit 0
+    ;;
+esac
+
 # We support one method to call the init-puavo.d scripts.
 # Pass "init=/sbin/init-puavo", which will execute the scripts
 # in the real system and chain to /sbin/init after that.
@@ -7,14 +23,13 @@
 for x in $(cat /proc/cmdline); do
     case "$x" in
         init=/sbin/init-puavo)
-            LTSP_BOOT=true
-            PUAVO_LTSP_BOOT=true
+            PUAVO_BOOT=true
             break
             ;;
     esac
 done
 
-test -n "$LTSP_BOOT" || exit
+test -n "$PUAVO_BOOT" || exit
 
 [ -z "${rootmnt}" ] && panic "rootmnt unknown in init-bottom"
 [ -d "${rootmnt}/proc" ] || panic "rootmnt not mounted in init-bottom"
