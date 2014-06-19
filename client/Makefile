@@ -135,6 +135,7 @@ install : installdirs
 		puavo-pulseaudio-list
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(sbindir) \
+		jetpipe/jetpipe \
 		puavo-configure-client \
 		puavo-dns-client \
 		puavo-dnssd-printer-client \
