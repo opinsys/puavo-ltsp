@@ -1,0 +1,35 @@
+#!/bin/sh -e
+
+MINKVER="2.6.17"
+PREREQ=""
+
+# Output pre-requisites
+prereqs()
+{
+    echo "$PREREQ"
+}
+
+case "$1" in
+    prereqs)
+        prereqs
+        exit 0
+    ;;
+esac
+
+
+. /usr/share/initramfs-tools/hook-functions
+
+# make sure all our modules are there
+manual_add_modules squashfs
+manual_add_modules overlayfs
+manual_add_modules aufs
+auto_add_modules net
+
+# Copy across the binaries
+copy_exec /sbin/blkid /sbin
+
+# Cleanup empty ROOT= string if written in conf/param.conf
+if [ -e "$DESTDIR/conf/param.conf" ]; then
+    sed "/^ROOT=\"\"$/d" -i $DESTDIR/conf/param.conf
+fi
+
