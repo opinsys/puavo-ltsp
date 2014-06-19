@@ -1,3 +1,6 @@
+DEFAULT_LOCALE=$(jq -r .locale /etc/puavo/device.json)
+[ "${DEFAULT_LOCALE}" = "null" ] && DEFAULT_LOCALE=
+
 if [ -n "$DEFAULT_LOCALE" ]; then
   {
     echo "LANG=$DEFAULT_LOCALE"
