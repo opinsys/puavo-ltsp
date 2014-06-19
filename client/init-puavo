@@ -1,6 +1,27 @@
 #!/bin/sh
 
-. /usr/share/ltsp/ltsp-client-functions
+# list files in a directory consisting only of alphanumerics, hyphens and
+# underscores
+# $1 - directory to list
+# $2 - optional prefix to limit which files are selected
+run_parts_list() {
+    test $# -ge 1 || die "ERROR: Usage: run_parts_list <dir>"
+    if [ -d "$1" ]; then
+        find -L "$1" -mindepth 1 -maxdepth 1 -type f -name "$2*" |
+            sed -n '/.*\/[0-9a-zA-Z_\-]\{1,\}$/p' | sort -n
+    fi
+}
+
+boolean_is_true(){
+    case $1 in
+       # match all cases of true|y|yes
+       [Tt][Rr][Uu][Ee]|[Yy]|[Yy][Ee][Ss]) return 0 ;;
+       *) return 1 ;;
+    esac
+}
+
+
+#. /usr/share/ltsp/ltsp-client-functions
 scriptsdir="/usr/share/puavo-ltsp/init-puavo.d"
 
 # workaround Debian bug in initramfs-tools:
@@ -24,14 +45,6 @@ done
 mkdir -p /etc/puavo
 echo "${puavo_hosttype}" > /etc/puavo/hosttype
 export PUAVO_HOSTTYPE=${puavo_hosttype}
-
-# puavo-ltsp-client and ltsp-client-core do not work well together at
-# the moment because ltsp-client-core has a lot of checks for ltsp
-# in /proc/cmdline. That check is overly jealous and causes some
-# initialisations to happens twice. As a temporary fix we just remove
-# whole ltsp-client-core upstart script when puavo-ltsp-client is used.
-rm -f /etc/init/ltsp-client-core.conf
-kill -HUP 1
 
 for script in $(run_parts_list "$scriptsdir") ; do
     if [ "$script" = "$breakscript" ]; then
