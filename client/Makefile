@@ -152,7 +152,8 @@ install : installdirs
 		puavo-update-nm-configurations
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/initramfs-tools/hooks/ \
-		initramfs/hooks/ethtool
+		initramfs/hooks/ethtool \
+		initramfs/hooks/puavo_image
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/initramfs-tools/scripts/init-premount \
 		initramfs/scripts/init-premount/puavo_udhcp
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/initramfs-tools/scripts/init-bottom \
