@@ -26,6 +26,8 @@ installdirs :
 	mkdir -p $(DESTDIR)$(sysconfdir)/puavo-vpn-client/scripts/route-up
 	mkdir -p $(DESTDIR)$(sysconfdir)/init
 	mkdir -p $(DESTDIR)$(sysconfdir)/init.d
+	mkdir -p $(DESTDIR)$(sysconfdir)/network/if-up.d
+	mkdir -p $(DESTDIR)$(sysconfdir)/network/if-post-down.d
 	mkdir -p $(DESTDIR)$(sysconfdir)/NetworkManager/dispatcher.d
 	mkdir -p $(DESTDIR)$(sysconfdir)/ssh
 	mkdir -p $(DESTDIR)$(sysconfdir)/xdg/autostart
@@ -84,12 +86,12 @@ install : installdirs
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/lightdm \
 		templates/etc/lightdm/lightdm.conf
 
-	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/network/if-up.d \
-		templates/etc/network/if-up.d/ipsec \
-		templates/etc/network/if-up.d/sssd
+	$(INSTALL_PROGRAM) -t $(DESTDIR)$(sysconfdir)/network/if-up.d \
+		etc/network/if-up.d/ipsec \
+		etc/network/if-up.d/sssd
 
-	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/network/if-post-down.d \
-		templates/etc/network/if-post-down.d/ipsec
+	$(INSTALL_PROGRAM) -t $(DESTDIR)$(sysconfdir)/network/if-post-down.d \
+		etc/network/if-post-down.d/ipsec
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc \
 		templates/etc/hosts \
@@ -140,6 +142,7 @@ install : installdirs
 		puavo-pulseaudio-list
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(sbindir) \
+		jetpipe/jetpipe \
 		puavo-configure-client \
 		puavo-dns-client \
 		puavo-dnssd-printer-client \
@@ -151,7 +154,8 @@ install : installdirs
 		puavo-update-nm-configurations
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/initramfs-tools/hooks/ \
-		initramfs/hooks/ethtool
+		initramfs/hooks/ethtool \
+		initramfs/hooks/puavo_image
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/initramfs-tools/scripts/init-premount \
 		initramfs/scripts/init-premount/puavo_udhcp
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/initramfs-tools/scripts/init-bottom \
@@ -164,8 +168,7 @@ install : installdirs
 		screen.d/wirelessaccesspoint
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/ltsp/ltsp_config.d \
-		ltsp_config.d/00-puavoltsp-by-hosttype \
-		ltsp_config.d/02-find-puavo-ltsp-server
+		ltsp_config.d/00-puavoltsp-by-hosttype
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/ltsp/xinitrc.d \
 		xinitrc.d/I10-puavo-xrandr \
@@ -225,7 +228,7 @@ install : installdirs
 		puavo-x2go-set-xrandr-mode \
 		udev/udev-hotplug-monitor \
 		udev/udev-jetpipe \
-		xinitrc
+		setup-lightdm-display
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(libdir)/puavo-ltsp-client/pam \
 		pam/chown-session-dir \
