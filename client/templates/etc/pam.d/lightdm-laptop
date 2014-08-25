@@ -23,26 +23,31 @@ auth    sufficient      pam_permit.so
 # the sssd proxy provider with extrausers. This seems to fix the problems for
 # now and also give some extra flexibility in DNS SRV record handling.
 
-# If pam_krb5 succeeds, jump to fetch extrausers info with puavo-ltsp-login.
-# In that case pam_sss is optional as we already have a working kerberos 
-# ticket, so sssd malfunction can be ignored.
-
-# If pam_krb5 fails, pam_sss needs to succeed for the user to be able to
-# login. In that case do not call puavo-ltsp-login as it could not connect 
-# a working server.
-auth    [success=7 default=ignore]      pam_krb5.so use_first_pass
-auth    [success=1 default=ignore]	pam_sss.so use_first_pass
-auth	requisite	pam_deny.so
-auth    required        pam_exec.so /usr/lib/puavo-ltsp-client/pam/make-session-dir
-auth    required        pam_exec.so /usr/lib/puavo-ltsp-client/pam/populate-extrausers
-auth    optional        pam_gnome_keyring.so
-auth    optional        pam_cap.so
-auth    sufficient      pam_permit.so
+# XXX If pam_sss fails, but pam_krb5 succeeds, then wait a bit for sssd to figure
+# XXX things out, and try sssd again after 20 seconds.  If that fails, try sssd
+# XXX two times more, waiting 20 second before each try.
+auth    [success=16 default=ignore]     pam_sss.so  use_first_pass
+auth    requisite                       pam_krb5.so use_first_pass
+auth    required                        pam_exec.so /usr/lib/puavo-ltsp-client/pam/make-session-dir
+auth    required                        pam_exec.so /usr/lib/puavo-ltsp-client/pam/open-session
+auth    required                        pam_exec.so /usr/lib/puavo-ltsp-client/pam/populate-extrausers
+auth    [success=14 default=ignore]     pam_sss.so  use_first_pass
+auth    required                        pam_exec.so /bin/sleep 4
+auth    [success=12 default=ignore]     pam_sss.so  use_first_pass
+auth    required                        pam_exec.so /bin/sleep 8
+auth    [success=10 default=ignore]      pam_sss.so  use_first_pass
+auth    required                        pam_exec.so /bin/sleep 16
+auth    [success=8 default=ignore]      pam_sss.so  use_first_pass
+auth    required                        pam_exec.so /bin/sleep 32
+auth    [success=6 default=ignore]      pam_sss.so  use_first_pass
+auth    required                        pam_exec.so /bin/sleep 64
+auth    [success=4 default=ignore]      pam_sss.so  use_first_pass
+auth    requisite                       pam_deny.so
 
 auth    required        pam_exec.so /usr/lib/puavo-ltsp-client/pam/make-session-dir
 auth    required        pam_exec.so /usr/lib/puavo-ltsp-client/pam/open-session
 auth    required        pam_exec.so /usr/lib/puavo-ltsp-client/pam/populate-extrausers
-auth    optional        pam_sss.so use_first_pass
+
 auth    optional        pam_gnome_keyring.so
 auth    optional        pam_cap.so
 auth    sufficient      pam_permit.so
