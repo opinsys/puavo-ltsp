@@ -243,7 +243,7 @@ case @puavo_device_type
     try_writing_puavomounts()
   when "laptop"
     write_config("/etc/cups/cupsd.conf")
-    write_config("/etc/nsswitch.conf", "sss-extrausers")
+    write_config("/etc/nsswitch.conf", "sss")
     write_config("/etc/krb5.conf", "laptop")
     write_config("/etc/idmapd.conf")
     write_config("/etc/ldap/ldap.conf", "laptop")
@@ -260,14 +260,6 @@ case @puavo_device_type
     @ldap_bindpw       = read_file('/etc/puavo/ldap/password')
 
     write_config("/etc/sssd/sssd.conf", "laptop", true)
-
-    # Make sure that the nss-extrausers database files exist so that
-    # sssd does not go into offline mode when using extrausers proxy
-    ["/var/lib/extrausers/passwd", "/var/lib/extrausers/group"].each do |filename|
-      if !File.exists?(filename)
-        File.open(filename, "w") {|f| }
-      end
-    end
 
     # Laptops also want the NetworkManager configurations to be done before
     # it starts.  Should that be integrated here is an interesting question,

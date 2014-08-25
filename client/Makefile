@@ -109,7 +109,6 @@ install : installdirs
 		templates/etc/krb5.conf-laptop \
 		templates/etc/nsswitch.conf-extrausers \
 		templates/etc/nsswitch.conf-sss \
-		templates/etc/nsswitch.conf-sss-extrausers \
 		templates/etc/ntp.conf
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/cron.d \
