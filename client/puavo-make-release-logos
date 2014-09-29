@@ -2,6 +2,11 @@
 
 set -eu
 
+if [ "$(lsb_release -cs)" = "precise" ]; then
+  echo 'Not building release logos for precise' >&2
+  exit 0
+fi
+
 release=$(cat /etc/ltsp/this_ltspimage_release)
 hosttypes="fatclient laptop ltspserver thinclient wirelessaccesspoint"
 
