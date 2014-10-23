@@ -1,0 +1,231 @@
+#!/usr/bin/ruby1.9.3
+
+# Script to sync organisation owner users from LDAP locally so that
+# they can be used for administration. The tool is designed based on
+# the following assumptions:
+#
+# * Puavo organisation owners are also server admins with sudo rights
+# * Owner accounts are named with adm- prefix
+# * Organisation owner accounts are not used for desktop logins, but only for ssh logins
+# * SSH public keys are used for logins
+# * Sudo asks for the locally synced password
+# * Organisation owner accounts homedirs are placed under /adm-home/ because
+#   of possible NFS problems
+#
+# This script reads owners.json retrieved from puavo-rest that has all
+# organisation owner users and their data. The following files are written:
+#
+# /var/lib/extrausers/passwd
+# /var/lib/extrausers/shadow (with --shadow option)
+# /etc/sudoers.d/puavo-admins
+# /adm-home/<owner>/.ssh/authorized_keys2
+#
+# In addition all home directories are chmodded to 0700 and recursively 
+# chowned.
+#
+#
+# The following configurations are needed for everything to work properly:
+#
+# /etc/nslcd.conf
+# filter passwd (!(uid=adm-*))
+#
+# /etc/nsswitch.conf
+# passwd:         compat ldap extrausers
+# group:          compat ldap
+# shadow:         compat extrausers
+
+require "ldap"
+require 'rubygems'
+require 'yaml'
+require 'tempfile'
+require 'json'
+require "highline/import"
+require 'trollop'
+
+class User
+  attr_accessor :username, :uid_number, :gid_number, :first_name, :last_name, :puavo_id, :owner, :ssh_public_key
+
+  def initialize args
+    args.each do |k,v|
+      instance_variable_set("@#{k}", v) unless v.nil?
+    end
+
+    @owner = @owner == "true"
+  end
+
+  def owner?
+    @owner
+  end
+
+  def has_valid_passwd?
+    password = get_passwd(@dn)
+
+    if password
+      return true
+    else 
+      return false
+    end
+  end
+
+  def has_valid_ssh_public_key?
+    if @ssh_public_key and ! @ssh_public_key.eql?("")
+      return true
+    end
+
+    return false
+  end
+
+  def to_passwd
+    "#{@username}:x:#{@uid_number}:#{@gid_number}:#{@first_name} #{@last_name}:/adm-home/#{@username}:/bin/bash"
+  end
+
+  def to_sudoers
+    "#{@username} ALL=(ALL) ALL"
+  end
+
+  def to_shadow
+    password = get_passwd(@dn)
+
+    "#{@username}:#{password}:::::::"
+  end
+
+  def get_passwd(dn)
+    binddn        = File.read('/etc/puavo/ldap/dn').chomp
+    bindpw        = File.read('/etc/puavo/ldap/password').chomp
+    master_server = File.read('/etc/puavo/ldap/master').chomp
+    suffix        = File.read('/etc/puavo/ldap/base').chomp
+
+    conn = LDAP::Conn.new(host=master_server, port=389)
+    conn.set_option(LDAP::LDAP_OPT_PROTOCOL_VERSION, 3)
+    conn.start_tls
+
+    conn.bind(binddn, bindpw) do
+      begin
+        conn.search(dn, LDAP::LDAP_SCOPE_BASE, "(objectClass=puavoEduPerson)") do |e|
+          password = e.vals("userPassword")[0]
+
+          if password.start_with?("{CRYPT}$6$")
+            return password.slice(7..-1)
+          end
+        end
+      rescue Exception => e
+        puts e.inspect
+      end
+    end
+  end
+end
+
+def update_sudoers(users)
+  sudoers = Tempfile.open("sudoers")
+
+  users.each do |user|
+    sudoers.puts user.to_sudoers
+  end
+
+  sudoers.close
+
+  puts `diff -N /etc/sudoers.d/puavo_admins #{sudoers.path}`
+  `install -m 0440 #{sudoers.path} /etc/sudoers.d/puavo_admins`
+
+  sudoers.unlink
+end
+
+def update_passwd(users)
+  passwd = Tempfile.open("passwd")
+
+  users.each do |user|
+    passwd.puts user.to_passwd
+  end
+
+  passwd.close
+
+  puts `diff -N /var/lib/extrausers/passwd #{passwd.path}`
+  `install -m 0444 #{passwd.path} /var/lib/extrausers/passwd`
+
+  passwd.unlink
+end
+
+def update_shadow(users)
+  shadow = Tempfile.open("shadow")
+
+  users.each do |user|
+    shadow.puts user.to_shadow
+  end
+
+  shadow.close
+
+  puts `diff -N /var/lib/extrausers/shadow #{shadow.path}`
+  `install -m 0440 #{shadow.path} /var/lib/extrausers/shadow`
+
+  shadow.unlink
+end
+
+def update_ssh_keys(users, delete_old)
+  Dir.chdir("/var/lib/puavo/authorized_keys/")
+  old_keys = Dir.glob("*")
+
+  users.each do |user|
+    File.open("/var/lib/puavo/authorized_keys/#{user.username}", "w", 0400) do |keyfile|
+      keyfile.puts(user.ssh_public_key)
+      keyfile.chmod(0400)
+      keyfile.chown(user.uid_number, user.gid_number)
+
+      old_keys.delete(user.username)
+    end
+  end
+
+  if delete_old
+    old_keys.each do |username|
+      puts "Removing SSH keys for #{username}"
+      File.unlink("/var/lib/puavo/authorized_keys/#{username}")
+    end
+  end
+end
+
+def chown_homedirs(users)
+  users.each do |user|
+    File.chmod(0700, "/adm-home/#{user.username}")
+    FileUtils.chown_R(user.uid_number, user.gid_number, "/adm-home/#{user.username}")
+  end
+end
+
+json = JSON.parse( File.read( "/run/puavo/owners.json" ) )
+owners = Array.new
+
+json["owners"].each do |tmp|
+  user = User.new(tmp)
+
+  owners << user
+end
+
+opts = Trollop::options do
+  opt :shadow, "Sync also paswords from LDAP to shadow"
+end
+
+puts "Allow logins for the following users:"
+
+owners.each do |user|
+  if user.owner?
+    puts user.username
+
+    if opts[:shadow] and !user.has_valid_passwd?
+      puts " * No valid password!"
+    end
+
+    if !user.has_valid_ssh_public_key?
+      puts " * No valid SSH key!"
+    end
+  end
+end
+
+if agree("OK? ", true)
+  update_passwd(owners)
+
+  if opts[:shadow]
+    update_shadow(owners)
+  end 
+
+  update_sudoers(owners)
+  update_ssh_keys(owners, true)
+  chown_homedirs(owners)
+end
