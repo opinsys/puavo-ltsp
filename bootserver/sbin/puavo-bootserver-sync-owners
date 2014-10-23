@@ -182,8 +182,12 @@ def update_ssh_keys(users, delete_old)
   end
 end
 
-def chown_homedirs(users)
+def create_homedirs(users)
   users.each do |user|
+    if ! Dir.exists?("/adm-home/#{user.username}")
+      Dir.mkdir("/adm-home/#{user.username}")
+    end
+
     File.chmod(0700, "/adm-home/#{user.username}")
     FileUtils.chown_R(user.uid_number, user.gid_number, "/adm-home/#{user.username}")
   end
@@ -199,7 +203,8 @@ json["owners"].each do |tmp|
 end
 
 opts = Trollop::options do
-  opt :shadow, "Sync also paswords from LDAP to shadow"
+  opt :no_shadow, "Do not sync also paswords from LDAP to shadow"
+  opt :no_homedirs, "Do not create and chown homedirs"
 end
 
 puts "Allow logins for the following users:"
@@ -208,7 +213,7 @@ owners.each do |user|
   if user.owner?
     puts user.username
 
-    if opts[:shadow] and !user.has_valid_passwd?
+    if ! opts[:no_shadow] and !user.has_valid_passwd?
       puts " * No valid password!"
     end
 
@@ -221,11 +226,14 @@ end
 if agree("OK? ", true)
   update_passwd(owners)
 
-  if opts[:shadow]
+  if !opts[:no_shadow]
     update_shadow(owners)
   end 
 
   update_sudoers(owners)
   update_ssh_keys(owners, true)
-  chown_homedirs(owners)
+
+  if !opts[:no_homedirs]
+    create_homedirs(owners)
+  end
 end
