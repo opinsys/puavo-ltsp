@@ -93,6 +93,22 @@ class User
     "#{@username}:#{password}:::::::"
   end
 
+  def ssh_key_changed?
+    old_key = ""
+
+    if File.exists?("/var/lib/puavo/authorized_keys/#{@username}")
+      old_key = File.read("/var/lib/puavo/authorized_keys/#{@username}")
+    end
+
+    new_key = @ssh_public_key
+
+    if !new_key
+      new_key = ""
+    end
+
+    !old_key.eql?(new_key)
+  end
+
   def get_passwd(dn)
     binddn        = File.read('/etc/puavo/ldap/dn').chomp
     bindpw        = File.read('/etc/puavo/ldap/password').chomp
@@ -169,23 +185,11 @@ def update_ssh_keys(users, delete_old)
   old_keys = Dir.glob("*")
 
   users.each do |user|
-    old_key = ""
-
-    if File.exists?("/var/lib/puavo/authorized_keys/#{user.username}")
-      old_key = File.read("/var/lib/puavo/authorized_keys/#{user.username}")
-    end
-
-    new_key = user.ssh_public_key
-
-    if !new_key
-      new_key = ""
-    end
-
-    if !old_key.eql?(new_key)
+    if user.ssh_key_changed?
       puts " * Updating SSH key /var/lib/puavo/authorized_keys/#{user.username}"
 
       File.open("/var/lib/puavo/authorized_keys/#{user.username}", "w", 0400) do |keyfile|
-        keyfile.write(new_key)
+        keyfile.write(user.ssh_public_key)
         keyfile.chmod(0400)
         keyfile.chown(user.uid_number, user.gid_number)
       end
@@ -239,6 +243,10 @@ owners.each do |user|
 
   if !user.has_valid_ssh_public_key?
     puts " * No valid SSH key!"
+  end
+
+  if user.ssh_key_changed?
+    puts " * New SSH key!"
   end
 end
 
