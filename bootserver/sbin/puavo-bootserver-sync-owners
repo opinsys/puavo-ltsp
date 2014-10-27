@@ -12,7 +12,7 @@
 # * Organisation owner accounts homedirs are placed under /adm-home/ because
 #   of possible NFS problems
 #
-# This script reads owners.json retrieved from puavo-rest that has all
+# This script reads org.json retrieved from puavo-rest that has all
 # organisation owner users and their data. The following files are written:
 #
 # /var/lib/extrausers/passwd
@@ -193,7 +193,7 @@ def create_homedirs(users)
   end
 end
 
-json = JSON.parse( File.read( "/run/puavo/owners.json" ) )
+json = JSON.parse( File.read( "/etc/puavo/org.json" ) )
 owners = Array.new
 
 json["owners"].each do |tmp|
