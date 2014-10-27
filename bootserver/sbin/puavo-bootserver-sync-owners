@@ -18,7 +18,7 @@
 # /var/lib/extrausers/passwd
 # /var/lib/extrausers/shadow (with --shadow option)
 # /etc/sudoers.d/puavo-admins
-# /adm-home/<owner>/.ssh/authorized_keys2
+# /var/lib/puavo/authorized_keys/<adm-user>
 #
 # In addition all home directories are chmodded to 0700 and recursively 
 # chowned.
@@ -33,6 +33,10 @@
 # passwd:         compat ldap extrausers
 # group:          compat ldap
 # shadow:         compat extrausers
+#
+# /etc/ssh/sshd_config
+# 
+# AuthorizedKeysFile	/var/lib/puavo/authorized_keys/%u
 
 require "ldap"
 require 'rubygems'
