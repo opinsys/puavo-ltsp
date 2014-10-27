@@ -169,13 +169,29 @@ def update_ssh_keys(users, delete_old)
   old_keys = Dir.glob("*")
 
   users.each do |user|
-    File.open("/var/lib/puavo/authorized_keys/#{user.username}", "w", 0400) do |keyfile|
-      keyfile.puts(user.ssh_public_key)
-      keyfile.chmod(0400)
-      keyfile.chown(user.uid_number, user.gid_number)
+    old_key = ""
 
-      old_keys.delete(user.username)
+    if File.exists?("/var/lib/puavo/authorized_keys/#{user.username}")
+      old_key = File.read("/var/lib/puavo/authorized_keys/#{user.username}")
     end
+
+    new_key = user.ssh_public_key
+
+    if !new_key
+      new_key = ""
+    end
+
+    if !old_key.eql?(new_key)
+      puts " * Updating SSH key /var/lib/puavo/authorized_keys/#{user.username}"
+
+      File.open("/var/lib/puavo/authorized_keys/#{user.username}", "w", 0400) do |keyfile|
+        keyfile.write(new_key)
+        keyfile.chmod(0400)
+        keyfile.chown(user.uid_number, user.gid_number)
+      end
+    end
+
+    old_keys.delete(user.username)
   end
 
   if delete_old
