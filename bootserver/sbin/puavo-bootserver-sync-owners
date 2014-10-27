@@ -210,16 +210,14 @@ end
 puts "Allow logins for the following users:"
 
 owners.each do |user|
-  if user.owner?
-    puts user.username
+  puts user.username
 
-    if ! opts[:no_shadow] and !user.has_valid_passwd?
-      puts " * No valid password!"
-    end
+  if ! opts[:no_shadow] and !user.has_valid_passwd?
+    puts " * No valid password!"
+  end
 
-    if !user.has_valid_ssh_public_key?
-      puts " * No valid SSH key!"
-    end
+  if !user.has_valid_ssh_public_key?
+    puts " * No valid SSH key!"
   end
 end
 
