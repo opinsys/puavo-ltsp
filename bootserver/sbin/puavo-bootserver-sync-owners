@@ -205,6 +205,7 @@ end
 opts = Trollop::options do
   opt :no_shadow, "Do not sync also paswords from LDAP to shadow"
   opt :no_homedirs, "Do not create and chown homedirs"
+  opt :yes, "Assume yes as an answer to all questions"
 end
 
 puts "Allow logins for the following users:"
@@ -221,7 +222,7 @@ owners.each do |user|
   end
 end
 
-if agree("OK? ", true)
+if opts[:yes] or agree("OK? ", true)
   update_passwd(owners)
 
   if !opts[:no_shadow]
