@@ -12,8 +12,8 @@
 # * Organisation owner accounts homedirs are placed under /adm-home/ because
 #   of possible NFS problems
 #
-# This script reads org.json retrieved from puavo-rest that has all
-# organisation owner users and their data. The following files are written:
+# This script queries puavo-rest for organisation data or reads JSON file 
+# given as --org-json command line parameter. The following files are written:
 #
 # /var/lib/extrausers/passwd
 # /var/lib/extrausers/shadow (with --shadow option)
@@ -45,6 +45,9 @@ require 'tempfile'
 require 'json'
 require "highline/import"
 require 'trollop'
+require "puavo"
+require "puavo/api-server"
+require "httparty"
 
 class User
   attr_accessor :username, :uid_number, :gid_number, :first_name, :last_name, :puavo_id, :owner, :ssh_public_key
@@ -217,19 +220,45 @@ def create_homedirs(users)
   end
 end
 
-json = JSON.parse( File.read( "/etc/puavo/org.json" ) )
+opts = Trollop::options do
+  opt :no_shadow, "Do not sync also paswords from LDAP to shadow"
+  opt :no_homedirs, "Do not create and chown homedirs"
+  opt :org_json, "Use the specified org.json file instead of querying puavo-rest"
+  opt :yes, "Assume yes as an answer to all questions"
+end
+
+opts[:api_server] ||= Puavo.resolve_api_server!
+opts[:user] ||= PUAVO_ETC.ldap_dn
+opts[:password] ||= PUAVO_ETC.ldap_password
+
+if opts[:org_json]
+  json = JSON.parse( File.read( opts[:org_json] ) )
+else
+  res = HTTParty.get("#{opts[:api_server]}/v3/current_organisation",
+    :basic_auth => {
+      :username => opts[:user],
+      :password => opts[:password]
+    },
+    :headers => {
+      "Authorization" => "bootserver",
+      "Accept" => "application/json"
+    }
+  )
+
+  if !res or res.code != 200 or !res.parsed_response
+    puts "Failed to read organisation data from #{opts[:api_server]}/v3/current_organisation !"
+    exit
+  end
+
+  json = res.parsed_response
+end
+
 owners = Array.new
 
 json["owners"].each do |tmp|
   user = User.new(tmp)
 
   owners << user
-end
-
-opts = Trollop::options do
-  opt :no_shadow, "Do not sync also paswords from LDAP to shadow"
-  opt :no_homedirs, "Do not create and chown homedirs"
-  opt :yes, "Assume yes as an answer to all questions"
 end
 
 puts "Allow logins for the following users:"
