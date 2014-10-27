@@ -19,6 +19,7 @@
 # /var/lib/extrausers/shadow (with --shadow option)
 # /etc/sudoers.d/puavo-admins
 # /var/lib/puavo/authorized_keys/<adm-user>
+# /var/lib/puavo/bash_profiles/<adm-user>
 #
 # In addition all home directories are chmodded to 0700 and recursively 
 # chowned.
@@ -37,6 +38,12 @@
 # /etc/ssh/sshd_config
 # 
 # AuthorizedKeysFile	/var/lib/puavo/authorized_keys/%u
+#
+# /etc/profile
+#
+# if [ -f /var/lib/puavo/bash_profiles/${USER} ]; then
+#   . /var/lib/puavo/bash_profiles/${USER}
+# fi
 
 require "ldap"
 require 'rubygems'
@@ -50,7 +57,7 @@ require "puavo/api-server"
 require "httparty"
 
 class User
-  attr_accessor :username, :uid_number, :gid_number, :first_name, :last_name, :puavo_id, :owner, :ssh_public_key
+  attr_accessor :username, :uid_number, :gid_number, :first_name, :last_name, :puavo_id, :owner, :ssh_public_key, :bash_profile
 
   def initialize args
     args.each do |k,v|
@@ -110,6 +117,22 @@ class User
     end
 
     !old_key.eql?(new_key)
+  end
+
+  def bash_profile_changed?
+    old_profile = ""
+
+    if File.exists?("/var/lib/puavo/bash_profiles/#{@username}")
+      old_profile = File.read("/var/lib/puavo/bash_profiles/#{@username}")
+    end
+
+    new_profile = @bash_profile
+
+    if !new_profile
+      new_profile = ""
+    end
+
+    !old_profile.eql?(new_profile)
   end
 
   def get_passwd(dn)
@@ -209,6 +232,32 @@ def update_ssh_keys(users, delete_old)
   end
 end
 
+def update_bash_profiles(users, delete_old)
+  Dir.chdir("/var/lib/puavo/bash_profiles/")
+  old_profiles = Dir.glob("*")
+
+  users.each do |user|
+    if user.bash_profile_changed?
+      puts " * Updating bash profile /var/lib/puavo/bash_profiles/#{user.username}"
+
+      File.open("/var/lib/puavo/bash_profiles/#{user.username}", "w", 0600) do |keyfile|
+        keyfile.write(user.bash_profile)
+        keyfile.chmod(0600)
+        keyfile.chown(user.uid_number, user.gid_number)
+      end
+    end
+
+    old_profiles.delete(user.username)
+  end
+
+  if delete_old
+    old_profiles.each do |username|
+      puts "Removing bash profile for #{username}"
+      File.unlink("/var/lib/puavo/bash_profiles/#{username}")
+    end
+  end
+end
+
 def create_homedirs(users)
   users.each do |user|
     if ! Dir.exists?("/adm-home/#{user.username}")
@@ -277,6 +326,10 @@ owners.each do |user|
   if user.ssh_key_changed?
     puts " * New SSH key!"
   end
+
+  if user.bash_profile_changed?
+    puts " * New bash profile!"
+  end
 end
 
 if opts[:yes] or agree("OK? ", true)
@@ -292,4 +345,6 @@ if opts[:yes] or agree("OK? ", true)
   if !opts[:no_homedirs]
     create_homedirs(owners)
   end
+
+  update_bash_profiles(owners, true)
 end
