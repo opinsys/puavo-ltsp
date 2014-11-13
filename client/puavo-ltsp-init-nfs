@@ -6,10 +6,6 @@
 # is mounted from host homedir.<puavo domain>. The script relies on reverse 
 # DNS query support in kerberos so that the real server name is not needed 
 # for the mount.
-#
-# If /etc/puavo/device.json contains tag "sambahomes", individual user home 
-# mounts are done over CIFS from Samba running on the same server. /home/share
-# is still mounted over NFS separately so that it can be used by all users.
 
 set -e
 
@@ -23,7 +19,7 @@ is_mounted() {
   mntpoint=$1
   mount | awk -v "mntpoint=$mntpoint" '
 	    BEGIN { status = 1 }
-	    $3 == mntpoint && ( $5 == "nfs4" || $5 == "cifs" ) { status = 0 }
+	    $3 == mntpoint && $5 == "nfs4" { status = 0 }
 	    END { exit(status) }
           '
 }
@@ -31,8 +27,6 @@ is_mounted() {
 PUAVO_HOSTTYPE=$(cat /etc/puavo/hosttype)
 PUAVO_DOMAIN=$(cat /etc/puavo/domain)
 HOMEDIR_SERVER="homedir.${PUAVO_DOMAIN}"
-
-SAMBAHOMES=$(jq -r '.tags[] | select(. == "sambahomes")' /etc/puavo/device.json)
 
 case "${PUAVO_HOSTTYPE}" in
   fatclient|ltspserver)
@@ -89,30 +83,8 @@ if [ "${DO_MOUNT}" = "true" ]; then
 
     # Then do the real mounts
 
-    if [ "${SAMBAHOMES}" = "sambahomes" ]; then
-      USER_HOME=$(getent passwd ${PAM_USER}|awk -F : '{print $6}')
-      USER_UID=$(id -u "${PAM_USER}")
-      USER_GID=$(id -g "${PAM_USER}")
-
-      MOUNTOPTS="rw,cruid=${PAM_USER},user=${PAM_USER},uid=${USER_UID},forceuid,gid=${USER_GID},forcegid,sec=krb5,nobrl"
-
-      if ! is_mounted "${USER_HOME}"; then
-        mkdir -m 700 -p "${USER_HOME}"
-        chown "${PAM_USER}:" "${USER_HOME}"
-
-        mount -t cifs -o "$MOUNTOPTS" "//${HOMEDIR_SERVER}/${PAM_USER}" "${USER_HOME}"
-      fi
-
-      SCHOOLDIR="${USER_HOME}/.puavo-sharedir.schooldir"
-      if ! is_mounted "$SCHOOLDIR"; then
-        mkdir -m 700 -p "$SCHOOLDIR"
-        chown "${PAM_USER}:" "$SCHOOLDIR"
-        mount -t cifs -o "$MOUNTOPTS" "//${HOMEDIR_SERVER}/share" "${SCHOOLDIR}"
-      fi
-    else
-      if ! is_mounted /home; then
-        mount -t nfs4 -o sec=krb5,nodev,nosuid,minorversion=0${MOUNT_OPTIONS} ${HOMEDIR_SERVER}:/home /home
-      fi
+    if ! is_mounted /home; then
+      mount -t nfs4 -o sec=krb5,nodev,nosuid,minorversion=0${MOUNT_OPTIONS} ${HOMEDIR_SERVER}:/home /home
     fi
   fi
 fi
