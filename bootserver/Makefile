@@ -44,7 +44,8 @@ install : installdirs
 		etc/sudoers.d/puavo-bootserver
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(sysconfdir)/nginx/sites-available \
-		etc/nginx/sites-available/ltsp-images
+		etc/nginx/sites-available/ltsp-images \
+		etc/nginx/sites-available/pxeboot
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(templatedir) \
 		templates/ltsp-server.xml
