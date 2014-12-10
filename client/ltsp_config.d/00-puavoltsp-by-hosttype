@@ -1,4 +1,13 @@
-PUAVO_HOSTTYPE=$(/bin/cat /etc/puavo/hosttype)
+puavo_has_device_tag() {
+  jq -r .tags[] /etc/puavo/device.json | grep -qx "$1"
+}
+
+if puavo_has_device_tag force_register; then
+  PUAVO_HOSTTYPE="unregistered"
+else
+  PUAVO_HOSTTYPE=$(/bin/cat /etc/puavo/hosttype)
+fi
+
 PERSONALLY_ADMINISTERED=$(jq -r .personally_administered /etc/puavo/device.json)
 
 set_lts_var PUAVO_HOSTTYPE "$PUAVO_HOSTTYPE"
@@ -114,7 +123,7 @@ case "$PUAVO_HOSTTYPE" in
     fi
 
     # do not start nm-applet on laptops when on webkiosk mode
-    if jq -r .tags[] /etc/puavo/device.json | grep -qx webkiosk; then
+    if puavo_has_device_tag webkiosk; then
       puavo_laptop_unneeded_session_services="
         $puavo_laptop_unneeded_session_services
         nm-applet
@@ -264,7 +273,7 @@ case "$PUAVO_HOSTTYPE" in
       # wirelessaccesspoint booted off from network, offer to update it
       set_lts_var SCREEN_07 ltspimage-update
       puavo_wirelessaccesspoint_unneeded_services="lightdm"
-    elif jq -r .tags[] /etc/puavo/device.json | grep -qx infotv; then
+    elif puavo_has_device_tag infotv; then
       # if we are an infotv, we do want the lightdm to start up
       set_lts_var SCREEN_07 lightdm
       puavo_wirelessaccesspoint_unneeded_services=""

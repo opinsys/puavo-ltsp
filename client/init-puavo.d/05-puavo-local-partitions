@@ -4,9 +4,9 @@
 # Images partition are used by laptops and need it mounted to update
 # the ltsp images.
 #
-# Checks if LVM partitions /dev/mapper/puavo-home, /dev/mapper/puavo-images,
-# /dev/mapper/puavo-state and /dev/mapper/puavo-tmp and mounts those as 
-# /home, /images, /state or /tmp correspondingly.  Also copy necessary 
+# Checks if LVM partitions /dev/mapper/quavo-home, /dev/mapper/quavo-images,
+# /dev/mapper/quavo-state and /dev/mapper/quavo-tmp and mounts those as
+# /home, /images, /state or /tmp correspondingly.  Also copy necessary
 # directory hierarchies under /state in case those are missing.
 
 puavo_enable_utmp() {
@@ -60,7 +60,7 @@ puavo_link_to_state() {
 
 puavo_mount_partition() {
   name=$1
-  if [ -b "/dev/mapper/puavo-$name" ]; then
+  if [ -b "/dev/mapper/quavo-$name" ]; then
     mkdir -p /$name
 
     OPTIONS="-o noatime"
@@ -71,16 +71,16 @@ puavo_mount_partition() {
       fi
     fi
 
-    mount $OPTIONS /dev/mapper/puavo-$name /$name
+    mount $OPTIONS /dev/mapper/quavo-$name /$name
   fi
 }
 
 if [ -x "/sbin/vgchange" ]; then
-  vgchange -a y puavo
+  vgchange -a y quavo
 
   case "$PUAVO_HOSTTYPE" in
     fatclient)
-      if [ -b "/dev/mapper/puavo-tmp" ]; then
+      if [ -b "/dev/mapper/quavo-tmp" ]; then
         puavo_mount_partition tmp
         chmod 1777 /tmp
       fi
@@ -96,7 +96,7 @@ if [ -x "/sbin/vgchange" ]; then
 
   case "$PUAVO_HOSTTYPE" in
     laptop|ltspserver|wirelessaccesspoint)
-      if [ -b "/dev/mapper/puavo-state" ]; then
+      if [ -b "/dev/mapper/quavo-state" ]; then
 	puavo_mount_partition state
 
 	# must fix in case puavo gid has changed...
@@ -131,7 +131,7 @@ if [ -x "/sbin/vgchange" ]; then
 	esac
       fi
 
-      if [ -b "/dev/mapper/puavo-tmp" ]; then
+      if [ -b "/dev/mapper/quavo-tmp" ]; then
         puavo_mount_partition tmp
         chmod 1777 /tmp
       fi

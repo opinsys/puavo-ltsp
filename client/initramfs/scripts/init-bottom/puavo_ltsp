@@ -94,7 +94,7 @@ do_union_mount_persistent()
 
 mount_puavo_partition() {
   name=$1
-  if [ -b "/dev/mapper/puavo-${name}" ]; then
+  if [ -b "/dev/mapper/quavo-${name}" ]; then
     mkdir -p "/${name}"
 
     OPTIONS="-o noatime"
@@ -105,7 +105,7 @@ mount_puavo_partition() {
       fi
     fi
 
-    mount ${OPTIONS} "/dev/mapper/puavo-${name}" "/${name}"
+    mount ${OPTIONS} "/dev/mapper/quavo-${name}" "/${name}"
   fi
 }
 

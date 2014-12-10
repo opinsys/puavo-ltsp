@@ -123,7 +123,7 @@ module DiskHandler
 
     # create LVM volume groups
     run('pvcreate', fs_conf['partition'])
-    run('vgcreate', '-s', '64M', 'puavo', fs_conf['partition'])
+    run('vgcreate', '-s', '64M', 'quavo', fs_conf['partition'])
 
     Filesystems[ fs_conf['hosttype'] ].each do |name, attrs|
       mkfs(attrs['size'], name, attrs['type'])
@@ -134,13 +134,13 @@ module DiskHandler
     run('lvcreate',
 	(size.match(/%/) ? '-l' : '-L'), size,
 	'-n', name,
-	'puavo')
+	'quavo')
 
     case type
       when 'ext4'
-        run('mkfs.ext4', '-v', "/dev/mapper/puavo-#{ name }")
+        run('mkfs.ext4', '-v', "/dev/mapper/quavo-#{ name }")
       when 'swap'
-        run('mkswap',    '-f', "/dev/mapper/puavo-#{ name }")
+        run('mkswap',    '-f', "/dev/mapper/quavo-#{ name }")
     end
   end
 
@@ -148,7 +148,7 @@ module DiskHandler
     non_swap_filesystems( fs_conf['hosttype'] ).each do |name, attrs|
       mnt_path = "/#{ name }"
       FileUtils.mkdir_p(mnt_path)
-      run('mount', "/dev/mapper/puavo-#{ name }", mnt_path)
+      run('mount', "/dev/mapper/quavo-#{ name }", mnt_path)
     end
   end
 end
@@ -433,7 +433,7 @@ UI::parse_args
 
 hosttype = PuavoFacts::get('puavo_hosttype')
 
-DiskHandler::cleanup_disk_environment(hosttype)
+# DiskHandler::cleanup_disk_environment(hosttype)
 
 case hosttype
   when 'laptop', 'ltspserver', 'wirelessaccesspoint'

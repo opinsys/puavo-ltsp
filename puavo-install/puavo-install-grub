@@ -23,7 +23,7 @@ images_dir=${1:-/images}
 diskdev=$2
 
 if [ -z "$diskdev" ]; then
-  diskdev=$(pvs | awk '$2 == "puavo" { print $1; exit }' \
+  diskdev=$(pvs | awk '$2 == "quavo" { print $1; exit }' \
 		| sed -E 's|[0-9]+$||')
 fi
 
@@ -37,7 +37,7 @@ hosttype=$(cat /etc/puavo/hosttype)
 
 case "$hosttype" in
   laptop|wirelessaccesspoint)
-    hosttype_specific="puavo.hosttype=${hosttype} root=/dev/mapper/puavo-images loop=\"\${imagepath}\""
+    hosttype_specific="puavo.hosttype=${hosttype} root=/dev/mapper/quavo-images loop=\"\${imagepath}\""
     ;;
   *)
     echo "Hosttype '$hosttype' is not supported" > /dev/stderr
@@ -117,7 +117,7 @@ function ltsp_image_entry {
 
     set kernelparameters="$4"
 
-    linux   /boot/vmlinuz${kernelversion} ro quiet splash init=/sbin/init-puavo __HOSTTYPE_SPECIFIC__ ${kernelparameters}
+    linux   /boot/vmlinuz${kernelversion} ro init=/sbin/init-puavo __HOSTTYPE_SPECIFIC__ ${kernelparameters}
     initrd  /boot/initrd.img${kernelversion}
 
     loopback -d loop
@@ -130,7 +130,7 @@ function ltsp_image_entry_superlaptop {
   set description="$2"
   set kernelparameters="$3"
 
-  if [ ! -d (lvm/puavo-imageoverlays) ]; then
+  if [ ! -d (lvm/quavo-imageoverlays) ]; then
     return
   fi
 
@@ -149,7 +149,7 @@ insmod loopback
 insmod usb_keyboard
 insmod lvm
 
-for dev in (lvm/puavo-images); do
+for dev in (lvm/quavo-images); do
   for file in ${dev}/*.default; do
     regexp -s default_alias_no_suffix '^(.*)\.default$' "${file}"
     break

@@ -58,7 +58,7 @@ preseed_count=$(echo "${preseeds}" | wc -l)
     break
 done
 
-puavo-register \
+puavo-register --force \
     --accepted-devicetypes fatclient,laptop,ltspserver,thinclient,wirelessaccesspoint \
     ${puavo_register_args}
 
@@ -81,8 +81,12 @@ case "$hosttype" in
     # install from nbd, the ltsp image must contain its name in this path
     ltspimage_name=$(cat /etc/ltsp/this_ltspimage_name)
 
-    puavo-install-and-update-ltspimages --install-from-nbd /dev/nbd0 \
-					"$ltspimage_name"
+    mkdir -p /oldimages
+    mount /dev/mapper/puavo-images /oldimages
+
+    puavo-install-and-update-ltspimages \
+      --install-from-file "/oldimages/${ltspimage_name}" \
+      "$ltspimage_name"
 
     echo "Updating $hosttype configuration..."
     if /usr/lib/puavo-ltsp-install/update-configuration; then
