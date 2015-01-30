@@ -1,107 +1,92 @@
-#!/bin/bash
+#!/usr/bin/env ruby1.9.1
 
-set -eu
+##
+## This script creates a libvirt virtual domain (virsh define) and
+## registers it to Puavo either as a fatclient (default) or
+## thinclient. It asks user for the school which the device shall be
+## registered to.
+##
+## Usage: puavo-bootserver-create-testclient --help
+##
 
-puavo_hostname=$(cat /etc/puavo/hostname)
-kvm_name="${puavo_hostname}-testclient"
-kvm_uuid=$(uuidgen)
-kvm_mac='aa:cc'
+## Standard libraries.
+require 'getoptlong'
+require 'set'
 
-for _ in {1..4}; do
-    printf -v kvm_mac '%s:%02x' "${kvm_mac}" $(($RANDOM % 255))
-done
+## 3rd-party libraries.
+require 'puavobs'
 
-tmpdir=
+bootserver_hostname = File.read('/etc/puavo/hostname').strip()
+testclient_hostname = "#{bootserver_hostname}-testclient"
+testclient_hosttype = 'fatclient'
+testclient_tags = Set.new()
 
-trap '[ -n "${tmpdir}" ] && rm -rf "${tmpdir}"' EXIT
+opts = GetoptLong.new(
+  ['--help', '-h', GetoptLong::NO_ARGUMENT],
+  ['--hostname', GetoptLong::REQUIRED_ARGUMENT],
+  ['--hosttype', GetoptLong::REQUIRED_ARGUMENT],
+  ['--tag', '-t', GetoptLong::REQUIRED_ARGUMENT],
+)
 
-tmpdir=$(mktemp -d --tmpdir)
+opts.each do |opt, arg|
+  case opt
+    when '--help'
+      puts <<EOF
+Usage: puavo-bootserver-create-testclient [OPTION]...
 
-xmlfile="${tmpdir}/${kvm_name}.xml"
+Create a libvirt virtual domain and register it to Puavo.
 
-cat <<EOF >"${xmlfile}"
-<domain type='kvm'>
-  <name>${kvm_name}</name>
-  <uuid>${kvm_uuid}</uuid>
-  <memory unit='KiB'>524288</memory>
-  <currentMemory unit='KiB'>524288</currentMemory>
-  <vcpu placement='static'>1</vcpu>
-  <os>
-    <type arch='x86_64' machine='pc-1.0'>hvm</type>
-    <boot dev='network'/>
-  </os>
-  <features>
-    <acpi/>
-    <apic/>
-    <pae/>
-  </features>
-  <clock offset='utc'/>
-  <on_poweroff>destroy</on_poweroff>
-  <on_reboot>restart</on_reboot>
-  <on_crash>restart</on_crash>
-  <devices>
-    <emulator>/usr/bin/kvm</emulator>
-    <controller type='usb' index='0'>
-    </controller>
-    <controller type='ide' index='0'>
-    </controller>
-    <interface type='bridge'>
-      <mac address='${kvm_mac}'/>
-      <source bridge='ltsp0'/>
-      <model type='e1000'/>
-    </interface>
-    <serial type='pty'>
-      <target port='0'/>
-    </serial>
-    <console type='pty'>
-      <target type='serial' port='0'/>
-    </console>
-    <video>
-      <model type='vga' vram='8192' heads='1'>
-        <acceleration accel3d='no' accel2d='yes'/>
-      </model>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
-    </video>
-    <memballoon model='virtio'>
-    </memballoon>
-  </devices>
-</domain>
+-h, --help                       display this help and exit
+    --hostname HOSTNAME          set testclient's hostname to HOSTNAME,
+                                 defaults to '#{testclient_hostname}'
+    --hosttype HOSTTYPE          set testclient's hosttype to HOSTTYPE,
+                                 defaults to '#{testclient_hosttype}'
+-t, --tag TAG                    set tag TAG to device, can be given multiple
+                                 times'
 EOF
+    exit(0)
+    when '--hostname'
+      testclient_hostname = arg.to_s
+    when '--hosttype'
+      testclient_hosttype = arg.to_s
+    when '--tag'
+      testclient_tags << arg.to_s
+  end
+end
 
-virsh define "${xmlfile}"
+if ARGV.length != 0 then
+  STDERR.puts("error: invalid number of arguments (#{ARGV.length}), expected 0")
+  exit 1
+end
 
-read -p "Username: " username
-read -s -p "Password: " password
+testclient_mac = nil
+exitvalue = 1
 
-echo
+at_exit do
+  if exitvalue != 0 && !testclient_mac.nil? then
+    pid = Process.spawn('virsh', 'undefine', testclient_hostname,
+                        STDOUT => '/dev/null')
+    Process.wait(pid)
+  end
+  exit(exitvalue)
+end
 
-puavo_domain=$(cat /etc/puavo/domain)
+testclient_mac = PuavoBS.virsh_define_testclient(testclient_hostname)
+if testclient_mac.nil? then
+  STDERR.puts("error: failed to create #{testclient_hostname}")
+  exit(1)
+end
 
-curl --user "${username}:${password}" \
-    --silent --show-error \
-    "https://${puavo_domain}/users/schools.json" >"${tmpdir}/schools.json"
+puts("#{testclient_hostname} created")
 
-school_id=$(jq -r '.[] | select(.name == "Administration").puavo_id' "${tmpdir}/schools.json")
+username, password = PuavoBS.ask_admin_credentials()
 
-if [ -z "${school_id}" ]; then
-    echo "error: could not resolve puavo_id of 'Administration' school" >&2
-    exit 1
-fi
+school_name, school_id = PuavoBS.ask_school(username, password)
 
-curl --user "${username}:${password}" \
-    --silent --show-error \
-    --max-time 3 \
-    -H 'Content-Type: application/json' \
-    -H 'Accept: application/json' \
-    -X POST -d "
-{
-  \"puavoHostname\": \"${kvm_name}\",
-  \"macAddress\": \"${kvm_mac}\",
-  \"puavoDeviceType\": \"fatclient\",
-  \"classes\": [\"puavoNetbootDevice\"]
-}" "https://${puavo_domain}/devices/${school_id}/devices.json" >"${tmpdir}/device.json"
+PuavoBS.register_device(username, password, school_id,
+                        testclient_hostname, testclient_mac,
+                        testclient_hosttype, testclient_tags.to_a)
 
-if [ "${kvm_name}" != "$(jq -r .puavoHostname "${tmpdir}/device.json")" ]; then
-    echo "error: $(jq -r .puavoHostname[] "${tmpdir}/device.json")" >&2
-    exit 1
-fi
+puts("#{testclient_hostname} registered")
+
+exitvalue = 0

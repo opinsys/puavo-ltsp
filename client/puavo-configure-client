@@ -2,6 +2,7 @@
 
 require 'erb'
 require 'json'
+require 'fileutils'
 
 def delete_file(file)
   if File.exists?(file)
@@ -39,10 +40,11 @@ if (!@puavo_device_type)
   end
 end
 
-if @puavo_device_type == 'unregistered'
-  `hostname unregistered`
-  `echo unregistered > /proc/sys/kernel/hostname`
-  `echo unregistered > /etc/hostname`
+Uninstalled_device_types = %w(diskinstaller preinstalled unregistered)
+if Uninstalled_device_types.include?(@puavo_device_type) then
+  `hostname #{ @puavo_device_type }`
+  `echo #{ @puavo_device_type } > /proc/sys/kernel/hostname`
+  `echo #{ @puavo_device_type } > /etc/hostname`
 
   exit(0)
 end
@@ -65,6 +67,14 @@ if File.exists?("/etc/puavo/device.json")
   @tags   = @device["tags"] || []
 
   append_tags_to_environment(@tags)
+end
+
+@default_xsession = 'puavo-desktop-session'
+@tags.each() do |tag|
+  if tag.start_with? 'default_xsession:' then
+    @default_xsession = tag.sub(/^default_xsession:/, '')
+    break
+  end
 end
 
 def write_config(filename, version=nil, secure=false)
@@ -179,6 +189,7 @@ case @puavo_device_type
     write_config("/etc/init/gssd.conf", "userprincipal")
     write_config("/etc/cups/client.conf")
     write_config("/etc/dbus-1/system.d/org.freedesktop.login1.conf")
+    write_config("/etc/rsyslog.d/send_to_syslogserver.conf")
 
     delete_file('/usr/share/dbus-1/system-services/fi.epitest.hostap.WPASupplicant.service')
     delete_file('/usr/share/dbus-1/system-services/fi.w1.wpa_supplicant1.service')
@@ -203,6 +214,7 @@ case @puavo_device_type
     write_config("/etc/cups/cupsd.conf")
     write_config("/etc/security/group.conf")
     write_config("/etc/dbus-1/system.d/org.freedesktop.login1.conf")
+    write_config("/etc/rsyslog.d/send_to_syslogserver.conf")
 
     if @tags.include?("webkiosk") then
       write_config("/etc/polkit-1/localauthority/50-local.d/90.org.freedesktop.networkmanager.deny_in_webkiosk_mode.pkla")
@@ -217,7 +229,7 @@ case @puavo_device_type
     try_writing_puavomounts()
   when "ltspserver"
     write_config("/etc/hosts", "ltspserver")
-    write_config("/etc/nsswitch.conf", "sss")
+    write_config("/etc/nsswitch.conf", "ldap")
     write_config("/etc/pam.d/ltspguestsshd")
     write_config("/etc/pam.d/ltspsshd")
     write_config("/etc/ldap/ldap.conf")
@@ -231,7 +243,10 @@ case @puavo_device_type
 
     @ldap_binddn       = read_file('/etc/puavo/ldap/dn')
     @ldap_bindpw       = read_file('/etc/puavo/ldap/password')
-    write_config("/etc/sssd/sssd.conf", nil, true)
+    write_config("/etc/nscd.conf")
+    write_config("/etc/nslcd.conf", nil, true)
+    File.chmod(0640, "/etc/nslcd.conf")
+    FileUtils.chown("root", "nslcd", "/etc/nslcd.conf")
 
     # http://askubuntu.com/questions/117127/flash-video-appears-blue
     # FIXME - do this in ruby instead of perl

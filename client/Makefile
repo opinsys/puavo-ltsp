@@ -1,3 +1,7 @@
+subdirs = create_monitors_xml
+install-subdirs = $(subdirs:%=install-%)
+clean-subdirs = $(subdirs:%=clean-%)
+
 prefix = /usr/local
 exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
@@ -11,7 +15,15 @@ INSTALL_PROGRAM = $(INSTALL)
 INSTALL_DATA = $(INSTALL) -m 644
 
 .PHONY : all
-all :
+all : $(subdirs)
+
+.PHONY : $(subdirs)
+$(subdirs) :
+	$(MAKE) -C $@
+
+.PHONY : $(install-subdirs)
+$(install-subdirs) :
+	$(MAKE) -C $(@:install-%=%) install
 
 .PHONY : installdirs
 installdirs :
@@ -52,6 +64,7 @@ installdirs :
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/pam.d
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/polkit-1/localauthority/50-local.d
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/racoon
+	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/rsyslog.d
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/samba
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/security
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/ssh
@@ -61,10 +74,11 @@ installdirs :
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/xsessions
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp/init-puavo.d
 	mkdir -p $(DESTDIR)$(datarootdir)/xgreeters
+	mkdir -p $(DESTDIR)$(datarootdir)/xsessions
 	mkdir -p $(DESTDIR)/var/lib/puavo-desktop/users
 
 .PHONY : install
-install : installdirs
+install : installdirs $(install-subdirs)
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/pam-configs \
 		pam/configs/puavo-local-access
 
@@ -73,6 +87,9 @@ install : installdirs
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/init \
 		templates/etc/init/gssd.conf-userprincipal
+
+	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/rsyslog.d \
+		templates/etc/rsyslog.d/send_to_syslogserver.conf
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/ssh \
 		templates/etc/ssh/sshd_config
@@ -108,7 +125,10 @@ install : installdirs
 		templates/etc/idmapd.conf \
 		templates/etc/krb5.conf \
 		templates/etc/krb5.conf-laptop \
+		templates/etc/nscd.conf \
+		templates/etc/nslcd.conf \
 		templates/etc/nsswitch.conf-extrausers \
+		templates/etc/nsswitch.conf-ldap \
 		templates/etc/nsswitch.conf-sss \
 		templates/etc/nsswitch.conf-sss-extrausers \
 		templates/etc/ntp.conf
@@ -151,6 +171,9 @@ install : installdirs
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/xsessions \
 		xsessions/puavo-desktop-session.desktop
 
+	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/xsessions \
+		xsessions/puavo-desktop-session.desktop
+
 	$(INSTALL_PROGRAM) -t $(DESTDIR)/sbin \
 		init-puavo 
 
@@ -179,6 +202,7 @@ install : installdirs
 		initramfs/scripts/init-bottom/puavo_ltsp 
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/ltsp/screen.d \
+		screen.d/builder \
 		screen.d/lightdm \
 		screen.d/ltspserver \
 		screen.d/kdump \
@@ -210,6 +234,7 @@ install : installdirs
 		upstart/ltspssh.conf \
 		upstart/ltspguestssh.conf \
 		upstart/puavo-ltsp-client.conf \
+		upstart/puavo-monitor-nbd-connection.conf \
 		upstart/puavo-set-sane-date.conf \
 		upstart/puavo-sync-external-files.conf
 
@@ -235,6 +260,7 @@ install : installdirs
 		etc/X11/Xsession.d/42puavo-set-browser-homepage \
 		etc/X11/Xsession.d/43puavo-set-guest-session-quirks \
 		etc/X11/Xsession.d/44puavo-generate-dconf-profile \
+		etc/X11/Xsession.d/45puavo-display-setup \
 		etc/X11/Xsession.d/90puavo-setup-printers
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(libdir)/puavo-ltsp-client \
@@ -242,8 +268,10 @@ install : installdirs
 		puavo-desktop-session \
 		puavo-desktop-session-cleanup \
 		puavo-display-setup \
+		puavo-handle-image-build-request \
 		puavo-ltspserver-create-guest \
 		puavo-make-release-logos \
+		puavo-monitor-nbd-connection \
 		puavo-run-xrandr \
 		puavo-thin-guest-account \
 		udev/udev-hotplug-monitor \
@@ -266,5 +294,9 @@ install : installdirs
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/xgreeters \
 		xgreeters/puavo-unity-greeter.desktop
 
+.PHONY : $(clean-subdirs)
+$(clean-subdirs) :
+	$(MAKE) -C $(@:clean-%=%) clean
+
 .PHONY : clean
-clean :
+clean : $(clean-subdirs)

@@ -1,44 +1,37 @@
-PRECISE_IMAGE_TARGETS = thinclient-precise
+prefix = /usr/local
+exec_prefix = $(prefix)
+bindir = $(exec_prefix)/bin
+libdir = $(prefix)/lib
+sbindir = $(exec_prefix)/sbin
+datarootdir = $(prefix)/share
+sysconfdir = $(prefix)/etc
 
-TRUSTY_IMAGE_TARGETS = opinsys-trusty           \
-		       opinsysextra-trusty      \
-		       opinsysrestricted-trusty \
-		       puavo-trusty
+INSTALL = install
+INSTALL_PROGRAM = $(INSTALL)
+INSTALL_DATA = $(INSTALL) -m 644
 
-IMAGE_TARGETS = $(PRECISE_IMAGE_TARGETS) $(TRUSTY_IMAGE_TARGETS)
+.PHONY : all
+all :
 
-OTHER_TARGETS = all build-chroot chroot image update-chroot update-local help
+.PHONY : installdirs
+installdirs :
+	mkdir -p $(DESTDIR)$(libdir)/puavo-image-tools
+	mkdir -p $(DESTDIR)$(sbindir)
+	mkdir -p $(DESTDIR)$(sysconfdir)/puavo-image-tools
 
-LOGFILE = $(shell echo logs/ltsp-$$(date +%Y-%m-%d-%H%M%S).log)
+.PHONY : install
+install : installdirs
+	$(INSTALL_DATA) -t $(DESTDIR)$(sysconfdir)/puavo-image-tools \
+		config/ltsp-image.excludes
+	
+	$(INSTALL_PROGRAM) -t $(DESTDIR)$(libdir)/puavo-image-tools \
+		puavo-ask-buildtarget-dir \
+		puavo-imgbuild-tool
+	
+	$(INSTALL_PROGRAM) -t $(DESTDIR)$(sbindir) \
+		puavo-build-image \
+		puavo-build-rdiffs \
+		puavo-setup-imagebuild
 
-help:
-	@echo "Available targets are:"
-	@echo "  ${OTHER_TARGETS}" | fmt
-	@echo
-	@echo "Available image types are:"
-	@echo "  ${IMAGE_TARGETS}" | fmt
-
-all: ${IMAGE_TARGETS}
-
-${PRECISE_IMAGE_TARGETS}:
-	@sudo ./build_puavo_device_image \
-           --build-all-for $(@:%-precise=%) --distribution precise 2>&1 \
-	   | tee -a ${LOGFILE}
-
-${TRUSTY_IMAGE_TARGETS}:
-	@sudo ./build_puavo_device_image \
-           --build-all-for $(@:%-trusty=%) --distribution trusty 2>&1 \
-	   | tee -a ${LOGFILE}
-
-build-chroot:
-	@if [ -z "${IMAGE}" ]; then echo define IMAGE; exit 1; fi
-	@sudo ./build_puavo_device_image --$@ ${IMAGE} 2>&1 \
-	   | tee -a ${LOGFILE}
-
-image update-chroot update-local:
-	@sudo ./build_puavo_device_image --$@ 2>&1 | tee -a ${LOGFILE}
-
-chroot:
-	@sudo ./build_puavo_device_image --$@
-
-.PHONY: ${IMAGE_TARGETS} ${OTHER_TARGETS}
+.PHONY : clean
+clean :
