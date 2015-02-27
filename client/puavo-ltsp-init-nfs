@@ -39,6 +39,16 @@ case "${PUAVO_HOSTTYPE}" in
     MOUNT_OPTIONS=",soft"
     DO_MOUNT=true
     ;;
+  laptop)
+    NFSHOMES=$(jq -r '.tags[] | select(. == "nfshomes")' /etc/puavo/device.json)
+
+    if [ "${NFSHOMES}" != "nfshomes" ]; then
+      exit 1
+    fi
+
+    MOUNT_OPTIONS=",soft"
+    DO_MOUNT=true
+    ;;
 esac
 
 if [ "${DO_MOUNT}" = "true" ]; then

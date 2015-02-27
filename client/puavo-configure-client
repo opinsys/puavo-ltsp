@@ -273,6 +273,8 @@ case @puavo_device_type
     write_config("/etc/nsswitch.conf", "sss-extrausers")
     write_config("/etc/krb5.conf", "laptop")
     write_config("/etc/idmapd.conf")
+    write_config("/etc/default/nfs-common")
+    write_config("/etc/init/gssd.conf", "userprincipal")
     write_config("/etc/ldap/ldap.conf", "laptop")
     write_config("/etc/lightdm/lightdm.conf")
     write_config("/etc/pam.d/lightdm", "laptop")

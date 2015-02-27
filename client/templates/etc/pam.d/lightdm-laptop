@@ -59,6 +59,11 @@ session required                        pam_permit.so
 # See "man pam_umask".
 session optional                        pam_umask.so
 session optional                        pam_sss.so
+
+# If nfshomes tag is set on laptops, we want to mount /home from nfs server, but
+# otherwise make sure that a local homedir exists. puavo-ltsp-init-nfs fails
+# with error 1 when it is run on laptops without nfshomes tag.
+session [success=1 default=ignore]	pam_exec.so /usr/sbin/puavo-ltsp-init-nfs
 session	optional	pam_mkhomedir.so skel=/etc/skel/ umask=0077
 
 session optional        pam_gnome_keyring.so auto_start
