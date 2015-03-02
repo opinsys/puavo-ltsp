@@ -35,30 +35,77 @@ module PuavoFacts
   end
 end
 
-class GPTPartitionHandler
-  def initialize()
+class PartitionHandler
+  def initialize(fdisk_or_gdisk)
+    @handler = fdisk_or_gdisk
+  end
+
+  def partition_edit(devicepath)
+    system(@handler, devicepath)
+  end
+
+  def show_device_partitions(devicepath)
+    system("#{ @handler } -l #{ devicepath } | more") \
+      or raise "Error running fdisk for device '#{ device }'"
   end
 end
 
-class LegacyBIOSPartitionHandler
+class GPTPartitionHandler < PartitionHandler
   def initialize()
+    super('gdisk')
+  end
+
+  def sgdisk_new_partition(device, partnum, sectorcodestring, typecodestring)
+    puts "Creating partition number #{ partnum } on device '#{ device }'"
+    system('sgdisk', "--new=#{ partnum }:#{ sectorcodestring }",
+                     "--typecode=#{ partnum }:#{ typecodestring}",
+                     device) \
+      or raise "Could not create device '#{ device }' partition #{ partnum }"
+
   end
 
   def init_device(device, first_sector, last_sector)
+    puts "Zapping device '#{ device }' partition scheme"
+    # XXX double --zap is stupid, yet perhaps "necessary"?
+    system('sgdisk', "--zap", device)       \
+      and system('sgdisk', "--zap", device) \
+        or raise "Could not zap device '#{ device }' partition scheme"
+
+    puts "Clearing device '#{ device }' partition scheme"
+    system('sgdisk', "--clear", device) \
+      or raise "Could not clear device '#{ device }' partition scheme"
+
+    sgdisk_new_partition(device, 1, "#{ first_sector }:+1M", "0xEF02")
+    sgdisk_new_partition(device, 2, "0:+256M",               "0xEF00")
+    sgdisk_new_partition(device, 3, "0:#{ last_sector }",    "0x8E00")
+  end
+
+  def whole_disk_partition(device)
+    # the partition when given device and the "whole"-scheme
+    "#{ device }3"
+  end
+end
+
+class LegacyBIOSPartitionHandler < PartitionHandler
+  def initialize()
+    super('fdisk')
+  end
+
+  def init_device(device, first_sector, last_sector)
+    # take out all GPT stuff
+    system('sgdisk', "--zap", device)
+
     # create an lvm partition
     # see http://www.walkernews.net/2007/07/02/how-to-create-linux-lvm-in-3-minutes/
-    IO.popen([ 'fdisk', device ], 'w') do |f|
+
+    IO.popen([ @handler, device ], 'w') do |f|
       f.print("n\np\n1\n#{ first_sector }\n#{ last_sector }\nt\n8e\na\n1\np\nw\n")
     end
   end
 
-  def partition_edit(devicepath)
-    system('fdisk', devicepath)
-  end
-
-  def show_device_partitions(devicepath)
-    system("fdisk -l #{ devicepath } | more") \
-      or raise "Error running fdisk for device '#{ device }'"
+  def whole_disk_partition(device)
+    # the partition when given device and the "whole"-scheme
+    "#{ device }1"
   end
 end
 
@@ -142,7 +189,8 @@ class DiskHandler
 
     if fs_conf['partition'] == 'whole'
       fs_setup_phases += [ :lvm_partition, :puavo_filesystems ]
-      fs_conf['partition'] = "#{ fs_conf['device'] }1"
+      fs_conf['partition'] \
+        = @partition_handler.whole_disk_partition(fs_conf['device'])
     else
       fs_setup_phases += [ :puavo_filesystems ]
     end
@@ -164,18 +212,26 @@ class DiskHandler
     system(*cmd) or raise "Error running command: '#{ cmd.inspect }'"
   end
 
+  def dd_cleanup_start(device)
+    if ! File.blockdev?(device) then
+      raise "Requested cleanup of '#{ device }' which is not a block device"
+    end
+
+    run('dd', 'if=/dev/zero', "of=#{ device }", 'count=2K',
+       { :err => '/dev/null' })
+  end
+
   def run_partition_edit(devicepath)
     @partition_handler.partition_edit(devicepath)
   end
 
   def lvm_partition(fs_conf)
     # clean up possible confusing mess from the device
-    run('dd', 'if=/dev/zero', "of=#{ fs_conf['device'] }", 'count=2K',
-        { :err => '/dev/null' })
+    dd_cleanup_start(fs_conf['device'])
 
     @partition_handler.init_device(fs_conf['device'],
                                    fs_conf['first_sector'],
-                                   fs_conf['las_sector'])
+                                   fs_conf['last_sector'])
   end
 
   def non_swap_filesystems(hosttype)
@@ -185,8 +241,7 @@ class DiskHandler
 
   def puavo_filesystems(fs_conf, vgname)
     # clean up possible confusing mess from the partition
-    run('dd', 'if=/dev/zero', "of=#{ fs_conf['partition'] }", 'count=2K',
-       { :err => '/dev/null' })
+    dd_cleanup_start(fs_conf['partition'])
 
     # create LVM volume groups
     run('pvcreate', fs_conf['partition'], { :close_others => true })

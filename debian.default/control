@@ -155,6 +155,7 @@ Architecture: all
 Depends: ${misc:Depends},
  curl,
  expect-dev,
+ gdisk,
  jq,
  m4,
  nbd-client,
