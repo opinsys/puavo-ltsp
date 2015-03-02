@@ -35,7 +35,34 @@ module PuavoFacts
   end
 end
 
-module DiskHandler
+class GPTPartitionHandler
+  def initialize()
+  end
+end
+
+class LegacyBIOSPartitionHandler
+  def initialize()
+  end
+
+  def init_device(device, first_sector, last_sector)
+    # create an lvm partition
+    # see http://www.walkernews.net/2007/07/02/how-to-create-linux-lvm-in-3-minutes/
+    IO.popen([ 'fdisk', device ], 'w') do |f|
+      f.print("n\np\n1\n#{ first_sector }\n#{ last_sector }\nt\n8e\na\n1\np\nw\n")
+    end
+  end
+
+  def partition_edit(devicepath)
+    system('fdisk', devicepath)
+  end
+
+  def show_device_partitions(devicepath)
+    system("fdisk -l #{ devicepath } | more") \
+      or raise "Error running fdisk for device '#{ device }'"
+  end
+end
+
+class DiskHandler
   Filesystems = {
     'diskinstaller' => {
       'installimages' => { 'size' => '100%FREE', 'type' => 'ext4' },
@@ -62,7 +89,15 @@ module DiskHandler
     },
   }
 
-  def self.cleanup_disk_environment(hosttype, vgname)
+  def initialize()
+    @partition_handler = File.directory?('/sys/firmware/efi') \
+                           ? GPTPartitionHandler.new          \
+                           : LegacyBIOSPartitionHandler.new
+  end
+
+  def filesystems(); Filesystems; end
+
+  def cleanup_disk_environment(hosttype, vgname)
     # Unmount filesystems, if those are mounted.
     non_swap_filesystems(hosttype).each do |name, attrs|
       run('umount', '-f', "/#{ name }", { :err => '/dev/null' }) rescue true
@@ -100,7 +135,7 @@ module DiskHandler
       rescue true
   end
 
-  def self.do_fs_setup(conf, vgname)
+  def do_fs_setup(conf, vgname)
     fs_conf = conf.clone
 
     fs_setup_phases = []
@@ -125,28 +160,30 @@ module DiskHandler
     end
   end
 
-  def self.run(*cmd)
+  def run(*cmd)
     system(*cmd) or raise "Error running command: '#{ cmd.inspect }'"
   end
 
-  def self.lvm_partition(fs_conf)
+  def run_partition_edit(devicepath)
+    @partition_handler.partition_edit(devicepath)
+  end
+
+  def lvm_partition(fs_conf)
     # clean up possible confusing mess from the device
     run('dd', 'if=/dev/zero', "of=#{ fs_conf['device'] }", 'count=2K',
         { :err => '/dev/null' })
 
-    # create an lvm partition
-    # see http://www.walkernews.net/2007/07/02/how-to-create-linux-lvm-in-3-minutes/
-    IO.popen("fdisk #{ fs_conf['device'] }", 'w') do |f|
-      f.print "n\np\n1\n#{ fs_conf['first_sector'] }\n#{ fs_conf['last_sector'] }\nt\n8e\na\n1\np\nw\n"
-    end
+    @partition_handler.init_device(fs_conf['device'],
+                                   fs_conf['first_sector'],
+                                   fs_conf['las_sector'])
   end
 
-  def self.non_swap_filesystems(hosttype)
+  def non_swap_filesystems(hosttype)
     Filesystems[ hosttype ] \
       .select { |name, attrs| attrs['type'] != 'swap' }
   end
 
-  def self.puavo_filesystems(fs_conf, vgname)
+  def puavo_filesystems(fs_conf, vgname)
     # clean up possible confusing mess from the partition
     run('dd', 'if=/dev/zero', "of=#{ fs_conf['partition'] }", 'count=2K',
        { :err => '/dev/null' })
@@ -161,7 +198,7 @@ module DiskHandler
     end
   end
 
-  def self.mkfs(size, name, type, vgname)
+  def mkfs(size, name, type, vgname)
     run('lvcreate',
 	(size.match(/%/) ? '-l' : '-L'), size,
 	'-n', name,
@@ -176,17 +213,21 @@ module DiskHandler
     end
   end
 
-  def self.mount_filesystems(fs_conf, vgname)
+  def mount_filesystems(fs_conf, vgname)
     non_swap_filesystems( fs_conf['hosttype'] ).each do |name, attrs|
       mnt_path = "/#{ name }"
       FileUtils.mkdir_p(mnt_path)
       run('mount', "/dev/mapper/#{ vgname }-#{ name }", mnt_path)
     end
   end
+
+  def show_device_partitions(devicepath)
+    @partition_handler.show_device_partitions(devicepath)
+  end
 end
 
 module QueryDiskInfo
-  def self.ask_device()
+  def self.ask_device(diskhandler)
     choosable_disk_devices = []
 
     current_system_device = nil
@@ -216,7 +257,7 @@ module QueryDiskInfo
 
       puts '-----'
       puts "We can install to the following disk devices:\n"
-      show_disk_devices(choosable_disk_devices)
+      show_disk_devices(diskhandler, choosable_disk_devices)
 
       if chosen_disk_device.nil?
         chosen_disk_device = choosable_disk_devices[0]
@@ -271,7 +312,7 @@ module QueryDiskInfo
     last_sector
   end
 
-  def self.ask_device_and_partition_with_confirmation(hosttype)
+  def self.ask_device_and_partition(diskhandler, hosttype)
     do_it        = false
     device       = nil
     partition    = nil
@@ -279,8 +320,8 @@ module QueryDiskInfo
     last_sector  = nil
 
     until do_it do
-      device    = QueryDiskInfo::ask_device()
-      partition = QueryDiskInfo::ask_partition(device)
+      device    = QueryDiskInfo::ask_device(diskhandler)
+      partition = QueryDiskInfo::ask_partition(diskhandler, device)
       if partition == 'whole'
         first_sector = 2048
         last_sector  = QueryDiskInfo::ask_last_sector(device, first_sector)
@@ -289,7 +330,7 @@ module QueryDiskInfo
         [
          ['imageoverlays', UI::ImageoverlaySizePrompt],
         ].each do |fs_name, prompt_key|
-          fs = DiskHandler::Filesystems[hosttype][fs_name]
+          fs = diskhandler.filesystems[hosttype][fs_name]
           next if fs.nil?
           fs_size =
             UI::ask_size_with_default("Filesystem size of #{ fs_name }:",
@@ -311,19 +352,19 @@ module QueryDiskInfo
     }
   end
 
-  def self.ask_partition(disk_device)
+  def self.ask_partition(diskhandler, disk_device)
     partitions = []
 
     chosen_partition = 'whole'
     until partitions.include?(chosen_partition) do
-      if chosen_partition == 'fdisk'
-        system('fdisk', "/dev/#{ disk_device }")
+      if chosen_partition == 'edit' then
+        diskhandler.run_partition_edit("/dev/#{ disk_device }")
         chosen_partition = 'whole'
       end
 
       puts '-----'
       puts "The disk /dev/#{ disk_device } has the following partitions:\n"
-      show_disk_devices(disk_device)
+      show_disk_devices(diskhandler, disk_device)
 
       partitions \
         = %w(whole) \
@@ -333,10 +374,10 @@ module QueryDiskInfo
               .select { |part| part.match(/^#{ disk_device }[0-9]/) } \
 
       puts "\nPossible partitions are: #{ partitions.join(' ') }"
-      puts "\nYou may choose 'fdisk' to partition this disk,"
+      puts "\nYou may choose 'edit' to partition this disk,"
       puts "or choose 'whole' to use the whole disk.\n"
       chosen_partition = UI::ask_with_default('Choose a partition:',
-					     chosen_partition,
+                                              chosen_partition,
                                               UI::PartitionPrompt)
     end
     chosen_partition
@@ -380,11 +421,10 @@ module QueryDiskInfo
       unless images_dm_path
   end
 
-  def self.show_disk_devices(disk_devices)
+  def self.show_disk_devices(diskhandler, disk_devices)
     sleep(1.5)
     [ disk_devices ].each do |device|
-      system("fdisk -l /dev/#{ device } | more") \
-        or raise "Error running fdisk for device '#{ device }'"
+      diskhandler.show_device_partitions("/dev/#{ device }") 
     end
   end
 end
@@ -530,12 +570,14 @@ hosttype = UI::hosttype || PuavoFacts::get('puavo_hosttype')
 
 vgname = (hosttype == 'diskinstaller') ? 'puavoinstaller' : 'puavo'
 
-DiskHandler::cleanup_disk_environment(hosttype, vgname)
+diskhandler = DiskHandler.new
+
+diskhandler.cleanup_disk_environment(hosttype, vgname)
 
 case hosttype
   when 'diskinstaller', 'laptop', 'ltspserver', 'wirelessaccesspoint'
-    conf = QueryDiskInfo::ask_device_and_partition_with_confirmation(hosttype)
-    DiskHandler::do_fs_setup(conf, vgname)
+    conf = QueryDiskInfo::ask_device_and_partition(diskhandler, hosttype)
+    diskhandler.do_fs_setup(conf, vgname)
   else
     puts "Hosttype '#{ hosttype }' does not need to setup local filesystems."
 end
