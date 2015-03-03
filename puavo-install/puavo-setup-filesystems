@@ -40,25 +40,13 @@ module PuavoFacts
 end
 
 class PartitionHandler
-  def initialize(fdisk_or_gdisk)
-    @handler = fdisk_or_gdisk
-  end
-
-  def partition_edit(devicepath)
-    system(@handler, devicepath)
-  end
-
   def show_device_partitions(devicepath)
-    system("#{ @handler } -l #{ devicepath } | more") \
-      or raise "Error running fdisk for device '#{ device }'"
+    system("#{ default_partition_handler() } -l #{ devicepath } | more") \
+      or raise "Error running #{ handler } for device '#{ device }'"
   end
 end
 
 class GPTPartitionHandler < PartitionHandler
-  def initialize()
-    super('gdisk')
-  end
-
   def sgdisk_new_partition(device, partnum, sectorcodestring, typecodestring)
     puts "Creating partition number #{ partnum } on device '#{ device }'"
     system('sgdisk', "--new=#{ partnum }:#{ sectorcodestring }",
@@ -84,6 +72,8 @@ class GPTPartitionHandler < PartitionHandler
     run('mkfs.vfat', "#{ device }2")
   end
 
+  def default_partition_handler; 'gdisk'; end
+
   def whole_disk_partition(device)
     # the partition when given device and the "whole"-scheme
     "#{ device }3"
@@ -102,10 +92,6 @@ class GPTPartitionHandler < PartitionHandler
 end
 
 class LegacyBIOSPartitionHandler < PartitionHandler
-  def initialize()
-    super('fdisk')
-  end
-
   def init_device(device, first_sector, last_sector)
     # take out all partition stuff (may fail, that is okay)
     system('sgdisk', '--zap-all', device)
@@ -117,6 +103,8 @@ class LegacyBIOSPartitionHandler < PartitionHandler
       f.print("n\np\n1\n#{ first_sector }\n#{ last_sector }\nt\n8e\na\n1\np\nw\n")
     end
   end
+
+  def default_partition_handler; 'fdisk'; end
 
   def whole_disk_partition(device)
     # the partition when given device and the "whole"-scheme
@@ -246,10 +234,6 @@ class DiskHandler
 
     run('dd', 'if=/dev/zero', "of=#{ device }", 'count=2K',
        { :err => '/dev/null' })
-  end
-
-  def run_partition_edit(devicepath)
-    @partition_handler.partition_edit(devicepath)
   end
 
   def lvm_partition(fs_conf)
@@ -447,8 +431,9 @@ module QueryDiskInfo
 
     chosen_partition = 'whole'
     until partitions.include?(chosen_partition) do
-      if chosen_partition == 'edit' then
-        diskhandler.run_partition_edit("/dev/#{ disk_device }")
+      if %w(fdisk gdisk parted).include?(chosen_partition) then
+        handler_program = chosen_partition
+        system(handler_program, "/dev/#{ disk_device }")
         chosen_partition = 'whole'
       end
 
@@ -464,7 +449,8 @@ module QueryDiskInfo
               .select { |part| part.match(/^#{ disk_device }[0-9]/) } \
 
       puts "\nPossible partitions are: #{ partitions.join(' ') }"
-      puts "\nYou may choose 'edit' to partition this disk,"
+      puts "\nYou may choose 'fdisk', 'gdisk' or 'parted' to partition " \
+             + "this disk,"
       puts "or choose 'whole' to use the whole disk.\n"
       chosen_partition = UI::ask_with_default('Choose a partition:',
                                               chosen_partition,
