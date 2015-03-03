@@ -70,9 +70,7 @@ class GPTPartitionHandler < PartitionHandler
 
   def init_device(device, first_sector, last_sector)
     puts "Zapping device '#{ device }' partition scheme"
-    # XXX double --zap is stupid, yet perhaps "necessary"?
-    system('sgdisk', '--zap', device) \
-      or raise "Could not zap device '#{ device }' partition scheme"
+    system('sgdisk', '--zap-all', device)
 
     puts "Clearing device '#{ device }' partition scheme"
     system('sgdisk', '--clear', device) \
@@ -109,8 +107,8 @@ class LegacyBIOSPartitionHandler < PartitionHandler
   end
 
   def init_device(device, first_sector, last_sector)
-    # take out all GPT stuff
-    system('sgdisk', "--zap", device)
+    # take out all partition stuff (may fail, that is okay)
+    system('sgdisk', '--zap-all', device)
 
     # create an lvm partition
     # see http://www.walkernews.net/2007/07/02/how-to-create-linux-lvm-in-3-minutes/
