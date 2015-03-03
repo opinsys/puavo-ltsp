@@ -227,6 +227,8 @@ case "$hosttype" in
     ;;
 esac
 
+is_uefi_boot() { test -d /sys/firmware/efi; }
+
 legacy_bios_grub_install() {
   images_dir=$1
   diskdev=$2
@@ -245,7 +247,7 @@ uefi_grub_install() {
 }
 
 grub_install() {
-  if [ -d /sys/firmware/efi ]; then
+  if is_uefi_boot; then
     uefi_grub_install "$@"
   else
     legacy_bios_grub_install "$@"
