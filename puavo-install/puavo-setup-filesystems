@@ -125,7 +125,7 @@ class LegacyBIOSPartitionHandler < PartitionHandler
     "#{ device }1"
   end
 
-  def mount_boot_partition(device)
+  def mount_boot_partition(device, images_path)
     # nothing to do
   end
 
