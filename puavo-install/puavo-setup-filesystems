@@ -7,6 +7,10 @@ require 'getoptlong'
 require 'highline/import'
 require 'open3'
 
+def run(*cmd)
+  system(*cmd) or raise "Error running command: '#{ cmd.inspect }'"
+end
+
 # XXX this should be elsewhere, other scripts might find this useful
 module PuavoFacts
   Puavodir = '/etc/puavo'
@@ -67,22 +71,35 @@ class GPTPartitionHandler < PartitionHandler
   def init_device(device, first_sector, last_sector)
     puts "Zapping device '#{ device }' partition scheme"
     # XXX double --zap is stupid, yet perhaps "necessary"?
-    system('sgdisk', "--zap", device)       \
-      and system('sgdisk', "--zap", device) \
-        or raise "Could not zap device '#{ device }' partition scheme"
+    system('sgdisk', '--zap', device) \
+      or raise "Could not zap device '#{ device }' partition scheme"
 
     puts "Clearing device '#{ device }' partition scheme"
-    system('sgdisk', "--clear", device) \
+    system('sgdisk', '--clear', device) \
       or raise "Could not clear device '#{ device }' partition scheme"
 
-    sgdisk_new_partition(device, 1, "#{ first_sector }:+1M", "0xEF02")
-    sgdisk_new_partition(device, 2, "0:+256M",               "0xEF00")
-    sgdisk_new_partition(device, 3, "0:#{ last_sector }",    "0x8E00")
+    sgdisk_new_partition(device, 1, "#{ first_sector }:+1M", '0xEF02')
+    sgdisk_new_partition(device, 2, '0:+256M',               '0xEF00')
+    sgdisk_new_partition(device, 3, "0:#{ last_sector }",    '0x8E00')
+
+    puts 'Initializing EFI partition'
+    run('mkfs.vfat', "#{ device }2")
   end
 
   def whole_disk_partition(device)
     # the partition when given device and the "whole"-scheme
     "#{ device }3"
+  end
+
+  def mount_boot_partition(device, images_path)
+    efidir_path = "#{ images_path }/boot/efi"
+    FileUtils.mkdir_p(efidir_path)
+    run('mount', "#{ device }2", efidir_path)
+  end
+
+  def umount_boot_partition(images_path)
+    efipath = "#{ images_path }/boot/efi"
+    run('umount', '-f', efipath, { :err => '/dev/null' })
   end
 end
 
@@ -106,6 +123,14 @@ class LegacyBIOSPartitionHandler < PartitionHandler
   def whole_disk_partition(device)
     # the partition when given device and the "whole"-scheme
     "#{ device }1"
+  end
+
+  def mount_boot_partition(device)
+    # nothing to do
+  end
+
+  def umount_boot_partition(images_path)
+    # nothing to do
   end
 end
 
@@ -146,6 +171,14 @@ class DiskHandler
 
   def cleanup_disk_environment(hosttype, vgname)
     # Unmount filesystems, if those are mounted.
+
+    images_path = hosttype == 'diskinstaller' \
+                    ? '/installimages'        \
+                    : '/images'
+
+    @partition_handler.umount_boot_partition(images_path) \
+      rescue true
+
     non_swap_filesystems(hosttype).each do |name, attrs|
       run('umount', '-f', "/#{ name }", { :err => '/dev/null' }) rescue true
     end
@@ -178,7 +211,7 @@ class DiskHandler
 
     # switch off all volume groups that may interfere with following operations
     run('vgchange', '-a', 'n', vgname,
-	{ :close_others => :true, :err => '/dev/null' }) \
+        { :close_others => :true, :err => '/dev/null' }) \
       rescue true
   end
 
@@ -206,10 +239,6 @@ class DiskHandler
                 : [ fs_conf         ]
       method(fn_sym).call(*args)
     end
-  end
-
-  def run(*cmd)
-    system(*cmd) or raise "Error running command: '#{ cmd.inspect }'"
   end
 
   def dd_cleanup_start(device)
@@ -269,10 +298,18 @@ class DiskHandler
   end
 
   def mount_filesystems(fs_conf, vgname)
+    has_images = false
+
     non_swap_filesystems( fs_conf['hosttype'] ).each do |name, attrs|
+      has_images = true if name == 'images'
+
       mnt_path = "/#{ name }"
       FileUtils.mkdir_p(mnt_path)
       run('mount', "/dev/mapper/#{ vgname }-#{ name }", mnt_path)
+    end
+
+    if has_images then
+      @partition_handler.mount_boot_partition(fs_conf['device'], '/images')
     end
   end
 

@@ -149,6 +149,9 @@ do_umounts() {
   puavo_install_hosttype=$1
   puavo_hosttype=$2
 
+  # If we have set up UEFI with /images/boot/efi mount, umount it.
+  mountpoint -q /images/boot/efi && umount /images/boot/efi
+
   if [ "$puavo_install_hosttype" = 'preinstalled' ]; then
     # On preinstalled hosts /images should be mounted at boot and /state
     # should have been mounted by this script.  Those are all we should need.

@@ -227,9 +227,33 @@ case "$hosttype" in
     ;;
 esac
 
+legacy_bios_grub_install() {
+  images_dir=$1
+  diskdev=$2
+  grub-install --root-directory=${images_dir} "$diskdev" 3>&- 4>&- 2>&1
+}
+
+uefi_grub_install() {
+  images_dir=$1
+  diskdev=$2
+  grub-install --boot-directory=${images_dir}/boot    \
+               --bootloader-id=puavo                  \
+               --efi-directory=${images_dir}/boot/efi \
+               --recheck                              \
+               --target=i386-efi                      \
+               "$diskdev" 3>&- 4>&- 2>&1
+}
+
+grub_install() {
+  if [ -d /sys/firmware/efi ]; then
+    uefi_grub_install "$@"
+  else
+    legacy_bios_grub_install "$@"
+  fi
+}
+
 if ! $only_update_config; then
-  if ! grub_msg=$(grub-install --root-directory=$images_dir "$diskdev" \
-                    3>&- 4>&- 2>&1); then
+  if ! grub_msg=$(grub_install "$images_dir" "$diskdev"); then
     echo "Grub installation failed: $grub_msg" >&2
     exit 1
   fi

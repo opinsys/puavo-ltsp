@@ -38,6 +38,9 @@ puavo-install-grub --hosttype   diskinstaller  \
 
 install_image $install_args
 
+# If we have set up UEFI with "${images_dir}/boot/efi" mount, umount it.
+mountpoint -q "${images_dir}/boot/efi" && umount "${images_dir}/boot/efi"
+
 umount "$images_dir"
 dmsetup remove puavoinstaller-installimages
 
