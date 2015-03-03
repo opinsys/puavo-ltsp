@@ -136,14 +136,31 @@ done
 EOF
 }
 
-lookup_windows_partition_number() {
+is_uefi_boot() { test -d /sys/firmware/efi; }
+
+legacy_bios_lookup_windows_partition_number() {
   # Presume that the first partition not containing "Linux"
   # is a Windows-partition.
-  _diskdev=$1
-  env LANG=C fdisk -l "$_diskdev" \
+  diskdev=$1
+  env LANG=C fdisk -l "$diskdev" \
     | awk '$1 ~ "^/dev/" && !/(Extended|Linux)/ {
 	     if (match($1, /[0-9]+$/, _)) { print _[0]; exit }
            }'
+}
+
+uefi_lookup_windows_partition_number() {
+  diskdev=$1
+  env LANG=C gdisk -l "$diskdev" \
+    | awk '$1 ~ /[0-9]+/ && $2 ~ /[0-9]+/ && $3 ~ /[0-9]+/ \
+             && $6 !~ /^(8E00|EF00|EF02)$/ { print $1; exit }'
+}
+
+lookup_windows_partition_number() {
+  if is_uefi_boot; then
+    uefi_lookup_windows_partition_number "$@"
+  else
+    legacy_bios_lookup_windows_partition_number "$@"
+  fi
 }
 
 usage() {
@@ -227,8 +244,6 @@ case "$hosttype" in
     ;;
 esac
 
-is_uefi_boot() { test -d /sys/firmware/efi; }
-
 legacy_bios_grub_install() {
   images_dir=$1
   diskdev=$2
@@ -242,7 +257,7 @@ uefi_grub_install() {
                --bootloader-id=puavo                  \
                --efi-directory=${images_dir}/boot/efi \
                --recheck                              \
-               --target=i386-efi                      \
+               --target=x86_64-efi                      \
                "$diskdev" 3>&- 4>&- 2>&1
 }
 
