@@ -57,8 +57,8 @@ class GPTPartitionHandler < PartitionHandler
   end
 
   def init_device(device, first_sector, last_sector)
-    puts "Zapping device '#{ device }' partition scheme"
-    system('sgdisk', '--zap-all', device)
+    # take out all partition stuff (may fail, that is okay)
+    system('sgdisk', '--zap-all', device, { :err => '/dev/null' })
 
     puts "Clearing device '#{ device }' partition scheme"
     system('sgdisk', '--clear', device) \
@@ -94,7 +94,7 @@ end
 class LegacyBIOSPartitionHandler < PartitionHandler
   def init_device(device, first_sector, last_sector)
     # take out all partition stuff (may fail, that is okay)
-    system('sgdisk', '--zap-all', device)
+    system('sgdisk', '--zap-all', device, { :err => '/dev/null' })
 
     # create an lvm partition
     # see http://www.walkernews.net/2007/07/02/how-to-create-linux-lvm-in-3-minutes/
