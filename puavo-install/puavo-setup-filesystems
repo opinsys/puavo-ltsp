@@ -99,7 +99,7 @@ class LegacyBIOSPartitionHandler < PartitionHandler
     # create an lvm partition
     # see http://www.walkernews.net/2007/07/02/how-to-create-linux-lvm-in-3-minutes/
 
-    IO.popen([ @handler, device ], 'w') do |f|
+    IO.popen([ default_partition_handler(), device ], 'w') do |f|
       f.print("n\np\n1\n#{ first_sector }\n#{ last_sector }\nt\n8e\na\n1\np\nw\n")
     end
   end
