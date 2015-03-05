@@ -154,6 +154,7 @@ Package: puavo-ltsp-install
 Architecture: all
 Depends: ${misc:Depends},
  curl,
+ efibootmgr:amd64,
  expect-dev,
  gdisk,
  grub-efi-amd64:amd64,
