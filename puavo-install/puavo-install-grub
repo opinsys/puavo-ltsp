@@ -254,10 +254,10 @@ uefi_grub_install() {
   images_dir=$1
   diskdev=$2
   grub-install --boot-directory=${images_dir}/boot    \
-               --bootloader-id=puavo                  \
+               --bootloader-id=ubuntu                 \
                --efi-directory=${images_dir}/boot/efi \
                --recheck                              \
-               --target=x86_64-efi                      \
+               --target=x86_64-efi                    \
                "$diskdev" 3>&- 4>&- 2>&1
 }
 
