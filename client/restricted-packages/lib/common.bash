@@ -189,24 +189,12 @@ install_package_file()
 
 remove_package()
 {
-    local package_path=$1
+    local package_name=$1
 
-    unconfigure_package "${package_path}" || {
-        echo "E: failed to unconfigure package '{package_path}'" >&2
+    unconfigure_package "${package_name}" || {
+        echo "E: failed to unconfigure package '{package_name}'" >&2
         return 1
     }
 
-    rm -rf "${RESTRICTED_PKG_STATEDIR}/${package_path}/upstream"
-}
-
-purge_package()
-{
-    local package_path=$1
-
-    remove_package "${package_path}" || {
-        echo "E: failed to remove package '${package_path}'" >&2
-        return 1
-    }
-
-    rm -rf "${RESTRICTED_PKG_STATEDIR}/${package_path}"
+    rm -rf "${RESTRICTED_PKG_STATEDIR}/${package_name}"
 }
