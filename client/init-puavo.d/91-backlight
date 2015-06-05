@@ -3,9 +3,14 @@
 BACKLIGHT=$(jq -r '.tags[] | select(. == "intel-backlight")' /etc/puavo/device.json)
 NO_BACKLIGHT=$(jq -r '.tags[] | select(. == "no-intel-backlight")' /etc/puavo/device.json)
 
-DMIDECODE=$(dmidecode)
+PRODUCT_NAME=$(dmidecode -s system-product-name)
 
-if [ "${BACKLIGHT}" = "intel-backlight" ]; then
+if [ "${NO_BACKLIGHT}" = "no-intel-backlight" ]; then
+  exit 0
+fi
+
+if [ "${BACKLIGHT}" = "intel-backlight" -o \
+     "${PRODUCT_NAME}" = "HP ProBook 430 G2" ]; then
   cat <<EOF >/usr/share/X11/xorg.conf.d/backlight.conf
 Section "Device"
     Identifier  "Intel Graphics"
