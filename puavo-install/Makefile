@@ -32,7 +32,11 @@ installdirs :
 	mkdir -p $(DESTDIR)$(datarootdir)/locale/fi/LC_MESSAGES
 	mkdir -p $(DESTDIR)$(datarootdir)/locale/sv/LC_MESSAGES
 	mkdir -p $(DESTDIR)$(datarootdir)/ltsp/screen.d
+	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-install/preseeds/personal_laptop_128G
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-install/preseeds/personal_laptop_500G
+	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-install/preseeds/personal_laptop_Acer_Aspire_ES1-111_500G
+	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-install/preseeds/personal_laptop_Acer_TravelMate_B115-M_128G_SSD
+	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-install/preseeds/personal_laptop_HP_ProBook_430_G2_128G_SSD
 	mkdir -p $(DESTDIR)$(libdir)/puavo-ltsp-install
 	mkdir -p $(DESTDIR)$(sbindir)
 	mkdir -p $(DESTDIR)$(sysconfdir)/dbus-1/system.d
@@ -50,6 +54,7 @@ install : installdirs
 		puavo-install-and-update-ltspimages \
 		puavo-install-grub \
 		puavo-make-install-disk \
+		puavo-reset-laptop-to-factory-defaults \
 		puavo-setup-filesystems \
 		puavo-update-client
 
@@ -71,16 +76,31 @@ install : installdirs
 		po/sv/puavo-client-updater-applet.mo
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/ltsp/screen.d \
-		screen.d/ltspimage-update
+		screen.d/ltspimage-update \
+		screen.d/register
+
+	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-install/preseeds/personal_laptop_128G \
+		preseeds/personal_laptop_128G/*
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-install/preseeds/personal_laptop_500G \
 		preseeds/personal_laptop_500G/*
+
+	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-install/preseeds/personal_laptop_Acer_Aspire_ES1-111_500G \
+		preseeds/personal_laptop_Acer_Aspire_ES1-111_500G/*
+
+	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-install/preseeds/personal_laptop_Acer_TravelMate_B115-M_128G_SSD \
+		preseeds/personal_laptop_Acer_TravelMate_B115-M_128G_SSD/*
+
+	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-install/preseeds/personal_laptop_HP_ProBook_430_G2_128G_SSD \
+		preseeds/personal_laptop_HP_ProBook_430_G2_128G_SSD/*
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(libdir)/puavo-ltsp-install \
 		lib/is-update-available \
 		lib/ls-old-imageoverlays \
 		lib/ls-old-images \
 		lib/puavo-image-preinst \
+		lib/screen-ltspimage-update \
+		lib/screen-register \
 		lib/update-configuration \
 		lib/update-images \
 		lib/update-ltspimage-update-stats

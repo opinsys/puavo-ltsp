@@ -39,7 +39,7 @@ module PuavoBS
 
   def self.check_response_code(code)
     if !code.between?(200, 206) && code != 302 then
-      raise "request failed with status code #{response.code}"
+      raise "request failed with status code #{code}"
     end
   end
 
@@ -83,7 +83,7 @@ module PuavoBS
   end
 
   def self.get_preferred_boot_image(hostname)
-    self.get_device_json['preferred_boot_image']
+    self.get_device_json(hostname)['preferred_boot_image']
   end
 
   def self.get_school_ids(admin_username, admin_password)
@@ -285,6 +285,18 @@ EOF
     else
       success ? mac : nil
     end
+  end
+
+  def self.get_org_json()
+    puavo_domain = File.read('/etc/puavo/domain').strip()
+    puavo_ldap_dn = File.read('/etc/puavo/ldap/dn').strip()
+    puavo_ldap_password = File.read('/etc/puavo/ldap/password').strip()
+    response = HTTP
+      .accept(:json)
+      .auth(self.basic_auth(puavo_ldap_dn, puavo_ldap_password))
+      .get(self.get_api_url("/v3/organisations/#{puavo_domain}"))
+    self.check_response_code(response.code)
+    JSON.parse(response.body)
   end
 
 end

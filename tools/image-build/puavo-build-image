@@ -33,12 +33,16 @@ def build_config_target(config_target,
 
   bootstrap_rules_args = apply_configure_bootstrap \
                            ? imgbuild_args('--configure-bootstrap-rules',
-					   conf,
-					   'bootstrap-puppet-classes') \
+                                           conf,
+                                           'bootstrap-puppet-classes') \
                            : []
 
+  if !conf['imageseries'].kind_of?(String) then
+    raise "Could not find imageseries for '#{ config_target }'"
+  end
+
   system('/usr/lib/puavo-image-tools/puavo-imgbuild-tool',
-         '--build',        config_target,
+         '--build',        conf['imageseries'],
          '--distribution', conf['distribution'],
          *arch_args,
          *bootstrap_rules_args,
@@ -53,9 +57,55 @@ def builder_confs(builder_confs_path)
 end
 
 
+def flatten_imageconfs(prefix, inherited_conf, imageconf)
+  imageconfs = []
+  imageconf.each do |next_prefix, next_prefix_conf|
+
+    concatenated_prefix                    \
+      = prefix                             \
+          ? "#{ prefix }-#{ next_prefix }" \
+          : next_prefix
+
+    merged_conf = inherited_conf.merge(next_prefix_conf)
+    merged_conf.delete('images')
+    merged_conf.delete('series')
+
+    if next_prefix_conf['series'].kind_of?(Hash) then
+      imageconfs += flatten_imageconfs(concatenated_prefix,
+                                       merged_conf,
+                                       next_prefix_conf['series'])
+    end
+
+    if next_prefix_conf['images'].kind_of?(Hash) then
+      next_prefix_conf['images'].each do |arch, archconf|
+        archconf.each do |distribution, images|
+          full_prefix = "#{ concatenated_prefix }-#{ distribution }-#{ arch }"
+
+          next_imageconf = merged_conf.merge({
+                             'arch'         => arch,
+                             'distribution' => distribution,
+                             'images'       => images,
+                             'imageseries'  => concatenated_prefix,
+                           })
+
+          imageconfs << [ full_prefix, next_imageconf ]
+        end
+      end
+    end
+  end
+
+  imageconfs
+end
+
 def image_configurations(config_files)
-  config_files.map { |cf| JSON.parse( File.read(cf) ) } \
-              .reduce &:merge
+  imageconfs = {}
+
+  config_files.map do |cf|
+    imageconf = flatten_imageconfs(nil, {}, JSON.parse( File.read(cf) ))
+    imageconfs.merge!( Hash[imageconf] )
+  end
+
+  imageconfs
 end
 
 def ensure_string_sanity(string)
@@ -178,9 +228,9 @@ def output_makefile(builder_confs, config_files)
   puts <<EOF
 IMAGES_DIR        = #{ images_dir }
 RDIFFS_DIR        = #{ rdiffs_dir }
-CKSUMS_DIR        = ${RDIFFS_DIR}/.cksums
-MIRROR_DIR        = ${RDIFFS_DIR}/.mirror
-SIGNATURES_DIR    = ${RDIFFS_DIR}/.signatures
+CKSUMS_DIR        = ${IMAGES_DIR}/.cksums
+MIRROR_DIR        = ${IMAGES_DIR}/mirror
+SIGNATURES_DIR    = ${IMAGES_DIR}/.signatures
 RDIFF_TARGET_DIRS = #{ rdiff_target_dirs.join(' ') }
 
 ALL_DIRS = ${CKSUMS_DIR} ${MIRROR_DIR} ${MIRROR_DIR}/rdiffs \\
@@ -188,6 +238,8 @@ ALL_DIRS = ${CKSUMS_DIR} ${MIRROR_DIR} ${MIRROR_DIR}/rdiffs \\
 
 CHROOT_TARGETS = apply-buildrules chroot cleanup-chroot image \\
                  install-packages update-chroot
+
+COMMON_TARGETS = all-new-images all-rdiffs cksums cleanup-mirror update-mirror
 
 IMAGE_FILES = #{ image_files.join(' ') }
 
@@ -216,11 +268,14 @@ help:
 	@echo "Available image series targets are:"
 	@echo "  ${IMAGE_SERIES}" | fmt
 	@echo
-	@echo "Available other targets are:"
+	@echo "Available chroot targets are:"
 	@echo "  ${CHROOT_TARGETS}" | fmt
 	@echo
 	@echo "Available rdiff series targets are:"
 	@echo "  ${IMAGE_SERIES_RDIFF_TARGETS}" | fmt
+	@echo
+	@echo "Available common targets are:"
+	@echo "  ${COMMON_TARGETS}" | fmt
 
 .PHONY: all-new-images
 all-new-images: ${IMAGE_SERIES}
@@ -228,13 +283,19 @@ all-new-images: ${IMAGE_SERIES}
 .PHONY: all-rdiffs
 all-rdiffs: ${RDIFF_FILES_AP}
 
+.PHONY: cksums
+cksums: ${IMAGES_DIR}/CKSUMS
+
 .PHONY: update-mirror
 update-mirror: ${MIRROR_DIR}/CKSUMS ${MIRROR_DIR_IMAGES} ${MIRROR_DIR_RDIFFS}
 
 .PHONY: cleanup-mirror
 cleanup-mirror:
-	@test -d "${MIRROR_DIR}"
-	rm -rf ${MIRROR_DIR}/*
+	@if [ -d "${MIRROR_DIR}" ]; then \
+	  rm -rf ${MIRROR_DIR}/*; \
+	else \
+	  echo There is no mirror directory ${MIRROR_DIR}; \
+	fi
 
 .PHONY: ${CHROOT_TARGETS}
 ${CHROOT_TARGETS}:
@@ -248,13 +309,18 @@ ${ALL_DIRS}:
 	mkdir -p $@
 
 ${CKSUMS_DIR}/%.img.cksum: %.img | ${CKSUMS_DIR}
-	cksum $< > $@
+	cksum $< > $@.tmp
+	mv $@.tmp $@
 
 ${CKSUMS_DIR}/%.rdiff.cksum: %.rdiff | ${CKSUMS_DIR}
-	cksum $< > $@
+	cksum $< > $@.tmp
+	mv $@.tmp $@
 
-${MIRROR_DIR}/CKSUMS: ${CKSUM_FILES_AP} | ${MIRROR_DIR}
+${IMAGES_DIR}/CKSUMS: ${CKSUM_FILES_AP} | ${MIRROR_DIR}
 	awk '{ "basename " $$3 | getline $$3; print }' ${CKSUM_FILES_AP} > $@
+
+${MIRROR_DIR}/CKSUMS: ${IMAGES_DIR}/CKSUMS
+	cp $< $@
 
 # link ${MIRROR_DIR_IMAGES}
 ${MIRROR_DIR}/%.img: %.img | ${MIRROR_DIR}

@@ -69,6 +69,7 @@ installdirs :
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/security
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/ssh
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/sssd
+	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/systemd
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/lib/udev
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/var/lib/polkit-1/localauthority/10-vendor.d
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/xsessions
@@ -87,6 +88,9 @@ install : installdirs $(install-subdirs)
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/init \
 		templates/etc/init/gssd.conf-userprincipal
+
+	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc \
+		templates/etc/rsyslog.conf
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/rsyslog.d \
 		templates/etc/rsyslog.d/send_to_syslogserver.conf
@@ -162,6 +166,9 @@ install : installdirs $(install-subdirs)
 		templates/etc/sssd/sssd.conf \
 		templates/etc/sssd/sssd.conf-laptop
 
+	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/systemd \
+		templates/etc/systemd/logind.conf
+
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/lib/udev \
 		templates/lib/udev/ltspfs_entry
 
@@ -195,7 +202,8 @@ install : installdirs $(install-subdirs)
 		puavo-update-nm-configurations
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/initramfs-tools/hooks/ \
-		initramfs/hooks/ethtool
+		initramfs/hooks/ethtool \
+		initramfs/hooks/puavo
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/initramfs-tools/scripts/init-premount \
 		initramfs/scripts/init-premount/puavo_udhcp
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(datarootdir)/initramfs-tools/scripts/init-bottom \
@@ -206,7 +214,6 @@ install : installdirs $(install-subdirs)
 		screen.d/lightdm \
 		screen.d/ltspserver \
 		screen.d/kdump \
-		screen.d/register \
 		screen.d/wirelessaccesspoint
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/ltsp/ltsp_config.d \
@@ -261,6 +268,9 @@ install : installdirs $(install-subdirs)
 		etc/X11/Xsession.d/43puavo-set-guest-session-quirks \
 		etc/X11/Xsession.d/44puavo-generate-dconf-profile \
 		etc/X11/Xsession.d/45puavo-display-setup \
+		etc/X11/Xsession.d/46puavo-hardware-quirks \
+		etc/X11/Xsession.d/47puavo-force-plaintext-keyring \
+		etc/X11/Xsession.d/47puavo-set-default-browser-in-panel \
 		etc/X11/Xsession.d/90puavo-setup-printers
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(libdir)/puavo-ltsp-client \
@@ -268,12 +278,14 @@ install : installdirs $(install-subdirs)
 		puavo-desktop-session \
 		puavo-desktop-session-cleanup \
 		puavo-display-setup \
+		puavo-force-plaintext-keyring \
 		puavo-handle-image-build-request \
 		puavo-ltspserver-create-guest \
 		puavo-make-release-logos \
 		puavo-monitor-nbd-connection \
 		puavo-run-xrandr \
 		puavo-thin-guest-account \
+		udev/udev-disable-wifi-powersave \
 		udev/udev-hotplug-monitor \
 		udev/udev-jetpipe \
 		xinitrc
@@ -284,6 +296,7 @@ install : installdirs $(install-subdirs)
 		pam/ltspserver-guest-login \
 		pam/make-session-dir \
 		pam/open-session \
+		pam/puavo-local-config-setup \
 		pam/populate-extrausers \
 		pam/restrict-logins-by-local-config \
 		pam/setup-guest-session

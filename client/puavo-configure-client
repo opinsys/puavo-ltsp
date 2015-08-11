@@ -27,7 +27,7 @@ def append_tags_to_environment(tags)
         end
       end
     end
-  rescue Exception => e
+  rescue StandardError => e
     warn "Could not append puavo tags to /etc/environment: #{ e.message }"
   end
 end
@@ -77,6 +77,15 @@ end
   end
 end
 
+@enable_suspend =                \
+  @puavo_device_type == 'laptop' \
+    && (! @tags.include?('nosuspend') || @tags.include?('no_nosuspend'))
+
+@enable_lidsuspend =             \
+  @puavo_device_type == 'laptop' \
+    && @enable_suspend           \
+    && (! @tags.include?('nolidsuspend') || @tags.include?('no_nolidsuspend'))
+
 def write_config(filename, version=nil, secure=false)
   begin
     template_file = filename
@@ -95,7 +104,7 @@ def write_config(filename, version=nil, secure=false)
     end
 
     File.chmod(perm, filename)
-  rescue Exception => e
+  rescue StandardError => e
     $stderr.puts "FAILED to write: #{filename} from /usr/share/puavo-ltsp-client/templates#{template_file}: #{e}"
   end
 end
@@ -157,10 +166,16 @@ def try_writing_puavomounts()
     File.open('/var/lib/puavo-desktop/puavomounts', 'w') do |f|
       f.print(autofs_configuration)
     end
+
+    begin
+      Dir.mkdir('/etc/auto.master.d')
+    rescue Errno::EEXIST
+    end
+
     File.open('/etc/auto.master.d/puavomounts.autofs', 'w') do |f|
       f.print("/- /var/lib/puavo-desktop/puavomounts\n")
     end
-  rescue Exception => e
+  rescue StandardError => e
     warn "Could not write puavomounts autofs configuration: #{ e.message }"
   end
 end
@@ -189,6 +204,7 @@ case @puavo_device_type
     write_config("/etc/init/gssd.conf", "userprincipal")
     write_config("/etc/cups/client.conf")
     write_config("/etc/dbus-1/system.d/org.freedesktop.login1.conf")
+    write_config("/etc/rsyslog.conf")
     write_config("/etc/rsyslog.d/send_to_syslogserver.conf")
 
     delete_file('/usr/share/dbus-1/system-services/fi.epitest.hostap.WPASupplicant.service')
@@ -214,6 +230,7 @@ case @puavo_device_type
     write_config("/etc/cups/cupsd.conf")
     write_config("/etc/security/group.conf")
     write_config("/etc/dbus-1/system.d/org.freedesktop.login1.conf")
+    write_config("/etc/rsyslog.conf")
     write_config("/etc/rsyslog.d/send_to_syslogserver.conf")
 
     if @tags.include?("webkiosk") then
@@ -262,6 +279,7 @@ case @puavo_device_type
     try_writing_puavomounts()
   when "laptop"
     write_config("/etc/cups/cupsd.conf")
+    write_config("/etc/dbus-1/system.d/org.freedesktop.login1.conf")
     write_config("/etc/nsswitch.conf", "sss-extrausers")
     write_config("/etc/krb5.conf", "laptop")
     write_config("/etc/idmapd.conf")
@@ -273,6 +291,7 @@ case @puavo_device_type
     write_config("/etc/security/group.conf")
     write_config("/etc/samba/smb.conf", "laptop")
     write_config("/etc/ntp.conf")
+    write_config("/etc/systemd/logind.conf")
     write_config("/var/lib/polkit-1/localauthority/10-vendor.d/com.ubuntu.desktop.pkla")
 
     if @tags.include?("webkiosk") then
