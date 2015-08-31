@@ -5,8 +5,6 @@ Maintainer: Opinsys Developers <dev@opinsys.fi>
 Build-Depends:
  bundler,
  debhelper (>= 8.0.0),
- libgnome-desktop-3-dev,
- pkg-config,
  ruby2.2,
  ruby2.2-dev
 Standards-Version: 3.9.3

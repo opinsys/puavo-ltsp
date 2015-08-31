@@ -1,4 +1,8 @@
-subdirs = create_monitors_xml
+# XXX Do not install create_monitors_xml, needs fixing for latest Ubuntus
+# XXX and hopefully it is not needed at all (in which case it can be removed).
+# subdirs = create_monitors_xml
+subdirs =
+
 install-subdirs = $(subdirs:%=install-%)
 clean-subdirs = $(subdirs:%=clean-%)
 
