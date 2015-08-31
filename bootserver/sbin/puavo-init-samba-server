@@ -1,4 +1,4 @@
-#!/usr/bin/ruby2.2
+#!/usr/bin/ruby2.1
 
 # Samba configuration script to connect samba3 to Puavo LDAP running
 # on localhost. Samba is configured with kerberos support for the

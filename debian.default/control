@@ -5,8 +5,8 @@ Maintainer: Opinsys Developers <dev@opinsys.fi>
 Build-Depends:
  bundler,
  debhelper (>= 8.0.0),
- ruby2.2,
- ruby2.2-dev
+ ruby2.1,
+ ruby2.1-dev
 Standards-Version: 3.9.3
 Homepage: https://github.com/opinsys/puavo-ltsp
 
@@ -72,7 +72,7 @@ Depends: ${misc:Depends},
  ruby-ipaddress,
  ruby-puavobs,
  ruby-uuidtools,
- ruby2.2,
+ ruby2.1,
  samba,
  screen,
  shorewall,
@@ -92,11 +92,11 @@ Description: Puavo LTSP bootserver runs infrastructure services for thin/fat
 
 Package: ruby-puavobs
 Architecture: any
-XS-Ruby-Versions: ruby2.2
+XS-Ruby-Versions: ruby2.1
 Depends: ${shlibs:Depends}, ${misc:Depends},
  ruby-bundler,
  ruby-highline,
- ruby2.2,
+ ruby2.1,
  puavo-client
 Description: Puavo Bootserver library for Ruby
  This library provides helper functions for common operations done in
@@ -145,7 +145,7 @@ Depends: ${misc:Depends},
  ruby-rest-client,
  ruby-trollop,
  ruby-uuidtools,
- ruby2.2,
+ ruby2.1,
  sssd,
  xautolock
 Suggests: webkiosk-language-selector
@@ -182,6 +182,6 @@ Depends: ${misc:Depends},
  make,
  rdiff,
  ruby-json,
- ruby2.2,
+ ruby2.1,
  squashfs-tools
 Description: Tools for building images.

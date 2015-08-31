@@ -1,4 +1,4 @@
-#!/usr/bin/ruby2.2
+#!/usr/bin/ruby2.1
 
 require 'json'
 require 'shellwords'

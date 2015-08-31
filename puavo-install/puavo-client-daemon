@@ -1,4 +1,4 @@
-#!/usr/bin/ruby2.2
+#!/usr/bin/ruby2.1
 
 # Services activated by DBus service activation mechanism do not have
 # all necessary components in PATH

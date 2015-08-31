@@ -1,4 +1,4 @@
-#!/usr/bin/ruby2.2
+#!/usr/bin/ruby2.1
 
 #
 # Generate and update NetworkManager configuration files

@@ -1,4 +1,4 @@
-#!/usr/bin/ruby2.2
+#!/usr/bin/ruby2.1
 #
 # Setup local filesystems for Puavo hosts
 
