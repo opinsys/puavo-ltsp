@@ -41,7 +41,12 @@ has_device_tag() {
     echo "system-db:disable_suspend"
   fi
 
+  if has_device_tag nokeyboard && ! has_device_tag no_nokeyboard; then
+    echo "system-db:nokeyboard"
+  fi
+
   echo "system-db:keyboard"
+  echo "system-db:desktopbackground"
   echo "system-db:puavodesktop"
 } > $puavo_dconf_profile_path || return 1
 
