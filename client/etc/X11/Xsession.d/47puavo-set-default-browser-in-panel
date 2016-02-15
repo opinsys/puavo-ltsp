@@ -1,13 +1,6 @@
-puavo_default_browser=$(xdg-mime query default text/html || true)
-
-browser_desktop_path="/usr/share/applications/firefox.desktop"
-
-if [ -n "$puavo_default_browser" \
-     -a -e "/usr/share/applications/${puavo_default_browser}" ]; then
-  browser_desktop_path="/usr/share/applications/${puavo_default_browser}"
-fi
-
-# set dconf value in panel so that the user default is also in panel
+# Reset default browser object location.  We used to have code here
+# to set user default browser, but users do not often know how to set
+# that so reset this to system default.  We need to keep this hack
+# for some time so that the old setting gets reset for all users.
 browser_dconf_path="/org/gnome/gnome-panel/layout/objects/object-0"
-dconf write "${browser_dconf_path}/instance-config/location" \
-	    "'${browser_desktop_path}'"
+dconf reset "${browser_dconf_path}/instance-config/location"
