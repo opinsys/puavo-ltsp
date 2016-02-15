@@ -1,6 +1,0 @@
-# Reset default browser object location.  We used to have code here
-# to set user default browser, but users do not often know how to set
-# that so reset this to system default.  We need to keep this hack
-# for some time so that the old setting gets reset for all users.
-browser_dconf_path="/org/gnome/gnome-panel/layout/objects/object-0"
-dconf reset "${browser_dconf_path}/instance-config/location"

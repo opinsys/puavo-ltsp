@@ -50,6 +50,10 @@ has_device_tag() {
     echo "system-db:desktopbackgroundlock"
   fi
 
+  if [ "$(uname -m)" = "x86_64" ]; then
+    echo "system-db:chrome_on_panel"
+  fi
+
   echo "system-db:keyboard"
   echo "system-db:desktopbackground"
   echo "system-db:scalingfactor"
