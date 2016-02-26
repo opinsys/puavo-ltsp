@@ -6,6 +6,7 @@ usage() {
     cat <<EOF
 Usage:
   puavo-imgbuild-tool --build imagetype
+                      --buildmounts buildmounts
                       --buildrule-dirs buildrule-dirs
                       --buildrules buildrules
                       --chroot-configure-script chroot-configure-script
@@ -17,6 +18,7 @@ Usage:
                       --target-dir target-dir
 
   puavo-imgbuild-tool --apply-buildrules
+                      --buildmounts buildmounts
                       --buildrule-dirs buildrule-dirs
                       --buildrules buildrules
                       --chroot-configure-script chroot-configure-script
@@ -24,6 +26,7 @@ Usage:
                       --target-dir target-dir
 
   puavo-imgbuild-tool --install-packages
+                      --buildmounts buildmounts
                       --buildrule-dirs buildrule-dirs
                       --chroot-configure-script chroot-configure-script
                       --image-configure-script image-configure-script
@@ -31,6 +34,7 @@ Usage:
                       --target-dir target-dir
 
   puavo-imgbuild-tool --update-chroot
+                      --buildmounts buildmounts
                       --buildrule-dirs buildrule-dirs
                       --buildrules buildrules
                       --chroot-configure-script chroot-configure-script
@@ -52,6 +56,10 @@ Usage:
   interactively.
 
   --image-excludes-file defaults to /etc/puavo-image-tools/ltsp-image.excludes
+
+  --buildmounts is a whitespace-separated list of additional mounts for image
+    build.  Each mount is a key-value pair separated by : that lists mount
+    directory (inside chroot) and file/directory (outside chroot).
 
   --buildrule-dirs is a comma-separated list of directories
     that contain rules for building images
@@ -78,7 +86,7 @@ get_default_for() {
 }
 
 if ! args=$(getopt -n "$0" -o + \
-              -l 'apply-buildrules,apt-proxy:,arch:,build:,buildrules:,buildrule-dirs:,builds-dir:,chroot,chroot-configure-script:,cleanup-chroot,configure-bootstrap-rules:,distribution:,extra-packages-dir:,image,image-configure-script:,image-excludes-file:,images-dir:,install-packages,mirror:,release-name:,target-dir:,update-chroot' \
+              -l 'apply-buildrules,apt-proxy:,arch:,build:,buildmounts:,buildrules:,buildrule-dirs:,builds-dir:,chroot,chroot-configure-script:,cleanup-chroot,configure-bootstrap-rules:,distribution:,extra-packages-dir:,image,image-configure-script:,image-excludes-file:,images-dir:,install-packages,mirror:,release-name:,target-dir:,update-chroot' \
               -- "$@"); then
   usage
 fi
@@ -88,6 +96,7 @@ arch=
 distribution=$(lsb_release -cs) # take the buildhost distribution as default
                                 # (precise, trusty, ...)
 
+buildmounts=
 buildrules=
 extra_packages_dir=
 imagetype=
@@ -131,6 +140,9 @@ while [ $# -ne 0 ]; do
       ;;
     --arch)
       arch=$2; shift; shift
+      ;;
+    --buildmounts)
+      buildmounts=$2; shift; shift
       ;;
     --buildrule-dirs)
       buildrule_dirs=$2; shift; shift
@@ -224,7 +236,8 @@ run_configure_chroot() {
     return 1
   fi
 
-  "$chroot_configure_script" --target-dir "$target_dir" "$@"
+  "$chroot_configure_script" --buildmounts "$buildmounts" \
+                             --target-dir "$target_dir" "$@"
 }
 
 dirs_with_postfix() {
