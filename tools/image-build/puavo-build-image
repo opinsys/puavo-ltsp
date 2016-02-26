@@ -168,7 +168,7 @@ def get_metadata_info(image_confs)
 
     series_metadata_file_ap = "${METADATA_DIR}/#{ image_series }.json"
     series_metadata_files_ap_list << series_metadata_file_ap
- 
+
     series_images = series_settings['images']
     next unless series_images.kind_of?(Array)
 
@@ -176,7 +176,7 @@ def get_metadata_info(image_confs)
 
     checksum_files = [ series_images, rdiff_files ].flatten \
                      .map { |file| "${CKSUMS_DIR}/#{ file }.sha256sum" }
-    
+
     series_metadata_make_snippets << <<EOF
 #{ series_metadata_file_ap }: images.json #{ series_images.join(' ') } #{ rdiff_files.join(' ') } #{ checksum_files.join(' ') } | ${METADATA_DIR}
 	puavo-build-image --images-config images.json \\
@@ -566,7 +566,7 @@ def setup_tmpfs(tmpfs_inode_count, tmpfs_path, tmpfs_size)
       or raise "Problem unmounting '#{ tmpfs_path }'"
     current_mntoptions = nil
   end
-    
+
   if !current_mntoptions then
     # we need to do mount
     FileUtils.mkdir_p(tmpfs_path)
