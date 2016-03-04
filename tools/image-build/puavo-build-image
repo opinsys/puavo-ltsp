@@ -175,7 +175,10 @@ def get_metadata_info(image_confs)
     rdiff_files = rdiff_files_for(series_images).values
 
     checksum_files = [ series_images, rdiff_files ].flatten \
-                     .map { |file| "${CKSUMS_DIR}/#{ file }.sha256sum" }
+                     .map do |file|
+                        [ "${CKSUMS_DIR}/#{ file }.cksum",
+                          "${CKSUMS_DIR}/#{ file }.sha256sum" ]
+                     end.flatten
 
     series_metadata_make_snippets << <<EOF
 #{ series_metadata_file_ap }: images.json #{ series_images.join(' ') } #{ rdiff_files.join(' ') } #{ checksum_files.join(' ') } | ${METADATA_DIR}
@@ -462,9 +465,9 @@ def output_series_json(series_name, config_files)
                           get_size.call( get_rdiffpath.call(rdiff) )
                         end
 
-	get_sha256 = lambda do |file|
+	get_checksum = lambda do |file, suffix|
 	  begin
-	    path = "#{ images_dir }/.cksums/#{ file }.sha256sum"
+	    path = "#{ images_dir }/.cksums/#{ file }.#{ suffix }"
 	    (IO.read(path).split)[0]
 	  rescue Errno::ENOENT
 	    raise "Checksum file #{ path } does not exist"
@@ -488,8 +491,9 @@ def output_series_json(series_name, config_files)
 
 	diffs = rdiff_files.map do |rdiff_file|
 		  {
+	            'cksum'    => get_checksum.call(rdiff_file, 'cksum'),
                     'filename' => rdiff_file,
-	            'sha256'   => get_sha256.call(rdiff_file),
+	            'sha256'   => get_checksum.call(rdiff_file, 'sha256sum'),
                     'size'     => get_rdiffsize.call(rdiff_file),
                     'urls'     => [ "#{ rdiffs_baseurl }/#{ rdiff_file }" ],
 	            'version'  => get_rdiffversion.call(rdiff_file),
@@ -497,10 +501,11 @@ def output_series_json(series_name, config_files)
 		end
 
 	{
+	  'cksum'    => get_checksum.call(imagename, 'cksum'),
 	  'diffs'    => diffs,
 	  'filename' => imagename,
 	  'id'       => File.basename(imagename, '.img'),
-	  'sha256'   => get_sha256.call(imagename),
+	  'sha256'   => get_checksum.call(imagename, 'sha256sum'),
 	  'size'     => get_imagesize.call(),
 	  'urls'     => [ "#{ images_baseurl }/#{ imagename }" ],
 	  'version'  => get_imageversion.call(),
