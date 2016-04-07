@@ -386,7 +386,7 @@ get_next_image() {
 
   mkdir -p "$rdiffs_dir"
 
-  cleanup_previous_runs "$rdiffs_dir" "${next_image}.tmp" "$rdiff_filename"
+  cleanup_previous_runs "$rdiffs_dir" '' "$rdiff_filename"
 
   ensure_enough_available_diskspace "$rdiffs_dir"
 
