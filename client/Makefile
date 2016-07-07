@@ -185,6 +185,9 @@ install : installdirs $(install-subdirs)
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/racoon \
 		templates/etc/racoon/racoon.conf
 
+	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/samba \
+		templates/etc/samba/smb.conf-laptop
+
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/security \
 		templates/etc/security/group.conf
 
