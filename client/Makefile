@@ -78,7 +78,6 @@ installdirs :
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/network/if-post-down.d
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/pam.d
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/polkit-1/localauthority/50-local.d
-	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/racoon
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/rsyslog.d
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/samba
 	mkdir -p $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/security
@@ -139,11 +138,7 @@ install : installdirs $(install-subdirs)
 		templates/etc/lightdm/lightdm.conf
 
 	$(INSTALL_PROGRAM) -t $(DESTDIR)$(sysconfdir)/network/if-up.d \
-		etc/network/if-up.d/ipsec \
 		etc/network/if-up.d/sssd
-
-	$(INSTALL_PROGRAM) -t $(DESTDIR)$(sysconfdir)/network/if-post-down.d \
-		etc/network/if-post-down.d/ipsec
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/icons/hicolor/scalable/status \
 		icons/puavoremoteaccess-cyan.svg \
@@ -181,9 +176,6 @@ install : installdirs $(install-subdirs)
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/polkit-1/localauthority/50-local.d \
 		templates/etc/polkit-1/localauthority/50-local.d/90.org.freedesktop.networkmanager.deny_in_webkiosk_mode.pkla
-
-	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/racoon \
-		templates/etc/racoon/racoon.conf
 
 	$(INSTALL_DATA) -t $(DESTDIR)$(datarootdir)/puavo-ltsp-client/templates/etc/samba \
 		templates/etc/samba/smb.conf-laptop
