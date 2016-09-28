@@ -20,6 +20,10 @@ for cronjobfile in /etc/cron.d/*       \
             # filling up.
             continue
             ;;
+        /etc/cron.daily/puavo-update-certificate)
+            grep -qx ltspserver /etc/puavo/hosttype && continue
+            rm -f "$cronjobfile"
+            ;;
         *)
             rm -f "$cronjobfile"
             ;;
