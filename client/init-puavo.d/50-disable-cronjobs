@@ -24,6 +24,11 @@ for cronjobfile in /etc/cron.d/*       \
             grep -qx ltspserver /etc/puavo/hosttype && continue
             rm -f "$cronjobfile"
             ;;
+        /etc/cron.d/puavo-autoreboot)
+            grep -qx ltspserver /etc/puavo/hosttype && continue
+            grep -qx wirelessaccesspoint /etc/puavo/hosttype && continue
+            rm -f "$cronjobfile"
+            ;;
         *)
             rm -f "$cronjobfile"
             ;;
