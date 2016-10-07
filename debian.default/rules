@@ -23,6 +23,7 @@ override_dh_installcron:
 	dh_installcron --name=puavo-bootserver-sync-images
 	dh_installcron --name=puavo-update-airprint-ddns
 	dh_installcron --name=puavo-update-certificate
+	dh_installcron --name=puavo-autoreboot
 
 override_dh_install:
 
