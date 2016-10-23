@@ -498,6 +498,8 @@ class SyncFileWithMetadata < SyncFile
   # (appending to an existing file on later download attempts).
   def download_from_url(url)
     uri = URI.parse(url)
+    
+    uri.port=443
 
     http = Net::HTTP.new(uri.host, uri.port)
 #    http.ca_file = "/etc/puavo/certs/rootca.pem"
