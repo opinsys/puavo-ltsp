@@ -2,6 +2,8 @@ subdirs = bootserver client puavo-install tools ruby-puavobs
 install-subdirs = $(subdirs:%=install-%)
 clean-subdirs = $(subdirs:%=clean-%)
 
+debian_template_dir = debian.$(shell lsb_release -s -c)
+
 .PHONY : all
 all : $(subdirs)
 
@@ -23,16 +25,19 @@ $(clean-subdirs) :
 .PHONY : clean
 clean : $(clean-subdirs)
 
-.PHONY : debiandir
-debiandir :
-	rm -rf debian
-	cp -a debian.default debian
+$(debian_template_dir) :
+	cp -a debian.default '$@'
+
+.PHONY: debian
+debian: $(debian_template_dir)
+	rm -rf '$@'
+	cp -a '$<' debian
 	puavo-dch $(shell cat VERSION)
 
 .PHONY : deb-binary-arch
-deb-binary-arch : debiandir
+deb-binary-arch : debian
 	dpkg-buildpackage -B -us -uc
 
 .PHONY : deb
-deb : debiandir
+deb : debian
 	dpkg-buildpackage -us -uc
