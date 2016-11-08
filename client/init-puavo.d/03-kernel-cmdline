@@ -9,12 +9,10 @@ for x in $(cat /proc/cmdline); do
         nbdroot=*)
             netroot="${x#nbdroot=}"
             nbd=true
-            break
             ;;
         nfsroot=*)
             netroot="${x#nfsroot=}"
             nfs=true
-            break
             ;;
     esac
 done
