@@ -19,6 +19,21 @@ done
 
 # The code below is stripped from local-top/nbd
 case "$netroot" in
+	*,*,*)
+		netsrv="${netroot%%,*}"
+		netpath="${netroot%,*}"
+		netpath="${netpath##*,}"
+		# root= parameter overrides three-option nbdroot= parameter
+		if [ -z "$netrootdev" ]
+		then
+			netbasedev="${netroot##*,}"
+			netrootdev=/dev/$netbasedev
+		fi
+		;;
+	*,*)
+		netsrv="${netroot%,*}"
+		netport="${netroot#*,}"
+		;;
 	\[*\]*)
 		# [ipv6]:port/path
 		netsrv=${netroot%\]*}
@@ -38,8 +53,14 @@ case "$netroot" in
 		;;
 esac
 
-# If not specified in the kernel cmdline, use the value from DHCP
-netsrv=${netsrv:-$ROOTSERVER}
+netrootdev=${netrootdev%p*}
+netbasedev=${netbasedev%p*}
+# If host is omitted, use ROOTSERVER from DHCP.
+case "$netsrv" in
+        ''|dhcp)
+                netsrv=$ROOTSERVER
+                ;;
+esac
 
 if [ -n "$nbd" ]; then
     export NBD_ROOT_HOST="$netsrv"
