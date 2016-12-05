@@ -573,6 +573,10 @@ lookup_image_servers() {
   fi
 
   # XXX not used yet, it is unclear if this will ever be?
+  
+  #add images.amxa.ch
+  all_image_servers="$all_image_servers images.amxa.ch "
+  
   image_servers_by_devicejson=$(
     jq -r '.imageservers[]' /etc/puavo/device.json 2>/dev/null || true)
 
