@@ -12,17 +12,18 @@ has_device_tag() {
   echo "user-db:user"
 
   if [ -n "$LANGUAGE" ]; then
-    echo "system-db:locale-$LANGUAGE"
+    locale_dconf_db="locale-$LANGUAGE"
   else
-    echo "system-db:locale-en"
+    locale_dconf_db='locale-en'
   fi
 
   PUAVO_HOSTTYPE=$(cat /etc/puavo/hosttype)
-  case "$PUAVO_HOSTTYPE" in
-    laptop)
-      echo "system-db:laptop"
-      ;;
-  esac
+  if [ "$PUAVO_HOSTTYPE" = 'laptop' ]; then
+    echo "system-db:${locale_dconf_db}-laptop"
+    echo "system-db:laptop"
+  else
+    echo "system-db:${locale_dconf_db}"
+  fi
 
   # If xrandr settings from puavo are forced (whether or not those are set to
   # anything), turn off the gnome-settings-daemon xrandr plugin.  But do
