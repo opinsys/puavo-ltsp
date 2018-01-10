@@ -264,7 +264,7 @@ else
   puavo_lvm_partition='puavo-images'
 fi
 
-common_kernel_arguments="puavo.hosttype=${hosttype} root=/dev/mapper/${puavo_lvm_partition} loop=\"\${imagepath}\""
+common_kernel_arguments="puavo.hosttype=${hosttype} root=/dev/mapper/${puavo_lvm_partition} loop=\"\${imagepath}\" stack_guard_gap=1"
 
 case "$hosttype" in
   diskinstaller|preinstalled|wirelessaccesspoint)
