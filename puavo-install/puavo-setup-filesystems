@@ -43,7 +43,7 @@ module DiskHandler
     'laptop' => {
       'swap'          => { 'size' => '4G',       'type' => 'swap' },
       'tmp'           => { 'size' => '6G',       'type' => 'ext4' },
-      'images'        => { 'size' => '40G',      'type' => 'ext4' },
+      'images'        => { 'size' => '80G',      'type' => 'ext4' },
       'state'         => { 'size' => '4G',       'type' => 'ext4' },
       'imageoverlays' => { 'size' => '5G',       'type' => 'ext4' },
       'home'          => { 'size' => '100%FREE', 'type' => 'ext4' },
